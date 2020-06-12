@@ -351,3 +351,4 @@ MigrationBackup/
 MacroKeyboardEditor/Properties/AssemblyInfo.cs
 MacroKeyboardEditor/Properties/AssemblyInfo.cs
 MacroKeyboard/version.h
+macrokeyboard/MacroKeyboard/__vm/
