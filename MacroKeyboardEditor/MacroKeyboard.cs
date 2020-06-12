@@ -15,50 +15,52 @@ namespace MacroKeysWriter
             Buttons = new List<Button>();
         }
 
+        public string WriteButton(Button button)
+        {
+            if (!Comms.WriteButton(button))
+            {
+                return "Failed to write " + button.ToString() + " Try again, comms problem?";
+            }
+
+            return "Buttons written";
+        }
+
         public string ReadKeyboard()
         {
-            var port = Comms.FindKeyboardPort();
-            if (!string.IsNullOrEmpty(port))
+            if (Comms.FindKeyboardPort())
             {
-                if (Comms.OpenPort(port))
+                Buttons = new List<Button>();
+                KeyboardSettings = Comms.GetKeyboardSettings();
+                if (KeyboardSettings != null)
                 {
-                    Buttons = new List<Button>();
-                    KeyboardSettings = Comms.GetKeyboardSettings();
-                    if (KeyboardSettings != null)
+                    for (byte buttonIndex = 0; buttonIndex < KeyboardSettings.NumButtons; buttonIndex++)
                     {
-                        for (byte buttonIndex = 0; buttonIndex < KeyboardSettings.NumButtons; buttonIndex++)
+                        var key = Comms.ReadButton(buttonIndex, KeyboardSettings.MaxNumKeystrokesPerButton);
+                        if (key != null)
                         {
-                            var key = Comms.ReadButton(buttonIndex, KeyboardSettings.MaxNumKeystrokesPerButton);
-                            if (key != null)
-                            {
-                                Buttons.Add(key);
-                            }
-                            else
-                            {
-                                return "Failed to read a button. Comms Problem?";
-                            }
+                            Buttons.Add(key);
                         }
-                        for (byte encoderIndex = 0; encoderIndex < KeyboardSettings.NumEncoders; encoderIndex++)
+                        else
                         {
-                            var encoderControls = Comms.ReadEncoder(encoderIndex, KeyboardSettings.MaxNumKeystrokesPerButton);
-                            if (encoderControls.Length == 3)
-                            {
-                                Buttons.AddRange(encoderControls);
-                            }
-                            else
-                            {
-                                return "Failed to read an encoder. Comms Problem?";
-                            }
+                            return "Failed to read a button. Comms Problem?";
                         }
                     }
-                    else
+                    for (byte encoderIndex = 0; encoderIndex < KeyboardSettings.NumEncoders; encoderIndex++)
                     {
-                        return "Failed to read keyboard settings. Comms Problem?";
+                        var encoderControls = Comms.ReadEncoder(encoderIndex, KeyboardSettings.MaxNumKeystrokesPerButton);
+                        if (encoderControls.Length == 3)
+                        {
+                            Buttons.AddRange(encoderControls);
+                        }
+                        else
+                        {
+                            return "Failed to read an encoder. Comms Problem?";
+                        }
                     }
                 }
                 else
                 {
-                    return "Can't open keyboard port: " + port;
+                    return "Failed to read keyboard settings. Comms Problem?";
                 }
             }
             else

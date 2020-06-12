@@ -39,15 +39,17 @@
             this.label3 = new System.Windows.Forms.Label();
             this.comboKeyCodeType = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.buttonWrite = new System.Windows.Forms.Button();
+            this.label5 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // buttonGetButtons
             // 
-            this.buttonGetButtons.Location = new System.Drawing.Point(12, 330);
+            this.buttonGetButtons.Location = new System.Drawing.Point(12, 331);
             this.buttonGetButtons.Name = "buttonGetButtons";
             this.buttonGetButtons.Size = new System.Drawing.Size(108, 60);
             this.buttonGetButtons.TabIndex = 0;
-            this.buttonGetButtons.Text = "Get Buttons";
+            this.buttonGetButtons.Text = "Read Buttons";
             this.buttonGetButtons.UseVisualStyleBackColor = true;
             this.buttonGetButtons.Click += new System.EventHandler(this.ButtonGetButtons_Click);
             // 
@@ -64,7 +66,7 @@
             // labelStatus
             // 
             this.labelStatus.AutoSize = true;
-            this.labelStatus.Location = new System.Drawing.Point(168, 320);
+            this.labelStatus.Location = new System.Drawing.Point(282, 331);
             this.labelStatus.Name = "labelStatus";
             this.labelStatus.Size = new System.Drawing.Size(56, 20);
             this.labelStatus.TabIndex = 2;
@@ -75,7 +77,7 @@
             this.panelStatus.BackColor = System.Drawing.SystemColors.Window;
             this.panelStatus.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panelStatus.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.panelStatus.Location = new System.Drawing.Point(172, 350);
+            this.panelStatus.Location = new System.Drawing.Point(286, 358);
             this.panelStatus.Name = "panelStatus";
             this.panelStatus.Size = new System.Drawing.Size(349, 49);
             this.panelStatus.TabIndex = 3;
@@ -153,12 +155,32 @@
             this.label4.TabIndex = 12;
             this.label4.Text = "Key Code";
             // 
+            // buttonWrite
+            // 
+            this.buttonWrite.Location = new System.Drawing.Point(144, 331);
+            this.buttonWrite.Name = "buttonWrite";
+            this.buttonWrite.Size = new System.Drawing.Size(108, 60);
+            this.buttonWrite.TabIndex = 13;
+            this.buttonWrite.Text = "Write Buttons";
+            this.buttonWrite.UseVisualStyleBackColor = true;
+            this.buttonWrite.Click += new System.EventHandler(this.buttonWrite_Click);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(586, 201);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(77, 20);
+            this.label5.TabIndex = 14;
+            this.label5.Text = "<- drag ->";
+            // 
             // FormMain
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1028, 450);
+            this.Controls.Add(this.buttonWrite);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.comboKeyCodeType);
@@ -170,6 +192,8 @@
             this.Controls.Add(this.labelStatus);
             this.Controls.Add(this.listBoxButtons);
             this.Controls.Add(this.buttonGetButtons);
+            this.Controls.Add(this.label5);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.MaximizeBox = false;
             this.Name = "FormMain";
             this.ShowIcon = false;
@@ -195,6 +219,8 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ComboBox comboKeyCodeType;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Button buttonWrite;
+        private System.Windows.Forms.Label label5;
     }
 }
 

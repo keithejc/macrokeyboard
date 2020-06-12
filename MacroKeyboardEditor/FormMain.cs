@@ -291,5 +291,13 @@ namespace MacroKeysWriter
                 }
             }
         }
+
+        private void buttonWrite_Click(object sender, EventArgs e)
+        {
+            foreach (var item in listBoxButtons.Items)
+            {
+                panelStatus.Text = MacroKeyboard.WriteButton((Button)item);
+            }
+        }
     }
 }

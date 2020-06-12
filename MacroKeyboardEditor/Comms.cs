@@ -9,47 +9,59 @@ namespace MacroKeysWriter
 {
     public class Comms
     {
-        private SerialPortStream serialPort;
-
         private const byte SerialStartByte = 0xee;
-        private const byte ReadButtonsCommand = 0x00;
-        private const byte WriteButtonsCommand = 0x01;
-        private const byte ReadEncodersCommand = 0x02;
-        private const byte WriteEncodersCommand = 0x03;
-        private const byte GetSettingsCommand = 0x04;
+        private const byte GetSettingsCommand = 0x00;
+        private const byte ReadButtonCommand = 0x01;
+        private const byte ReadEncoderCommand = 0x02;
+        private const byte WriteButtonCommand = 0x03;
+        private const byte WriteEncoderButtonCommand = 0x04;
+        private const byte WriteEncoderClockwiseCommand = 0x05;
+        private const byte WriteEncoderAntiClockwiseCommand = 0x06;
 
-        public string FindKeyboardPort()
+        private string keyboardPort = "";
+
+        public bool FindKeyboardPort()
         {
-            var keyboardPort = "";
-
-            if (serialPort != null)
-            {
-                serialPort.Close();
-                serialPort.Dispose();
-                serialPort = null;
-            }
-
             var ports = GetPorts(false);
             foreach (var port in ports)
             {
                 Console.WriteLine("Investigate port " + port);
-                OpenPort(port);
-                if (GetKeyboardSettings() != null)
+                try
                 {
-                    Console.WriteLine("Found keyboard " + port);
-                    keyboardPort = port;
+                    //test opening the port
+                    var serialPort = OpenPort(port);
+                    if (serialPort != null)
+                    {
+                        Console.WriteLine("Openned port " + port);
+                        //success - now close it so sendcommand can open it again
+                        serialPort.Close();
+                        serialPort.Dispose();
+                        serialPort = null;
+
+                        keyboardPort = port;
+                        if (GetKeyboardSettings() != null)
+                        {
+                            Console.WriteLine("Found keyboard " + port);
+                        }
+                        else
+                        {
+                            keyboardPort = "";
+                        }
+                    }
                 }
-                serialPort.Close();
-                serialPort.Dispose();
-                serialPort = null;
+                catch (Exception)
+                {
+                    keyboardPort = "";
+                }
             }
 
-            return keyboardPort;
+            return keyboardPort != "";
         }
 
-        public bool OpenPort(string portName)
+        public SerialPortStream OpenPort(string portName)
         {
-            var success = false;
+            SerialPortStream serialPort = null;
+
             var retries = 3;
 
             while (retries > 0)
@@ -61,24 +73,26 @@ namespace MacroKeysWriter
                     serialPort.DiscardOutBuffer();
                     serialPort.ReadTimeout = 1000;
                     serialPort.Open();
-                    success = true;
                     break;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    if (serialPort != null)
+                    {
+                        if (serialPort.IsOpen)
+                        {
+                            serialPort.Close();
+                        }
+                        serialPort.Dispose();
+                        serialPort = null;
+                    }
+
+                    Console.WriteLine("Exception in OpenPort " + e.Message);
                     retries--;
                 }
             }
-            return success;
-        }
 
-        ~Comms()
-        {
-            if (serialPort != null)
-            {
-                serialPort.Dispose();
-                serialPort.Close();
-            }
+            return serialPort;
         }
 
         public List<string> GetPorts(bool showDescription)
@@ -111,17 +125,25 @@ namespace MacroKeysWriter
             replyBuffer = new byte[1024];
             try
             {
-                serialPort.DiscardInBuffer();
-                serialPort.DiscardOutBuffer();
+                var serialPort = OpenPort(keyboardPort);
+                if (serialPort != null)
+                {
+                    serialPort.DiscardInBuffer();
+                    serialPort.DiscardOutBuffer();
 
-                serialPort.Write(command, 0, command.Length);
+                    serialPort.Write(command, 0, command.Length);
 
-                serialPort.Flush();
+                    serialPort.Flush();
 
-                replyLength = serialPort.Read(replyBuffer, 0, replyBuffer.Length);
+                    replyLength = serialPort.Read(replyBuffer, 0, replyBuffer.Length);
+
+                    serialPort.Close();
+                    serialPort.Dispose();
+                }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Console.WriteLine("Exception in SendCommand " + e.Message);
             }
             return replyLength;
         }
@@ -134,13 +156,13 @@ namespace MacroKeysWriter
             {
                 var sendBuffer = new byte[3];
                 sendBuffer[0] = SerialStartByte;
-                sendBuffer[1] = ReadButtonsCommand;
+                sendBuffer[1] = ReadButtonCommand;
                 sendBuffer[2] = button;
                 var numBytes = SendCommand(sendBuffer, out byte[] replyBuffer);
 
                 if (numBytes > 0)
                 {
-                    if (replyBuffer[0] == SerialStartByte && replyBuffer[1] == ReadButtonsCommand)
+                    if (replyBuffer[0] == SerialStartByte && replyBuffer[1] == ReadButtonCommand)
                     {
                         key = new Button
                         {
@@ -183,13 +205,13 @@ namespace MacroKeysWriter
             {
                 var sendBuffer = new byte[3];
                 sendBuffer[0] = SerialStartByte;
-                sendBuffer[1] = ReadEncodersCommand;
+                sendBuffer[1] = ReadEncoderCommand;
                 sendBuffer[2] = encoderIndex;
                 var numBytes = SendCommand(sendBuffer, out byte[] replyBuffer);
 
                 if (numBytes > 0)
                 {
-                    if (replyBuffer[0] == SerialStartByte && replyBuffer[1] == ReadEncodersCommand)
+                    if (replyBuffer[0] == SerialStartByte && replyBuffer[1] == ReadEncoderCommand)
                     {
                         //do the button
                         var encoderControl = new EncoderControl
@@ -306,7 +328,7 @@ namespace MacroKeysWriter
             return settings;
         }
 
-        public bool WriteButton(byte buttonIndex, Button key)
+        public bool WriteButton(Button button)
         {
             var replyLength = 0;
 
@@ -314,11 +336,36 @@ namespace MacroKeysWriter
             {
                 var buffer = new byte[40];
                 buffer[0] = SerialStartByte;
-                buffer[1] = WriteButtonsCommand;
-                buffer[2] = buttonIndex;
+
+                if (button is EncoderControl encoder)
+                {
+                    switch (encoder.EncoderControlType)
+                    {
+                        case EncoderControlType.Button:
+                            buffer[1] = WriteEncoderButtonCommand;
+                            break;
+
+                        case EncoderControlType.Clockwise:
+                            buffer[1] = WriteEncoderClockwiseCommand;
+                            break;
+
+                        case EncoderControlType.AntiClockwise:
+                            buffer[1] = WriteEncoderAntiClockwiseCommand;
+                            break;
+
+                        default:
+                            break;
+                    }
+                    buffer[2] = (byte)encoder.EncoderIndex;
+                }
+                else
+                {
+                    buffer[1] = WriteButtonCommand;
+                    buffer[2] = (byte)button.ButtonIndex;
+                }
 
                 var bufferIndex = 3;
-                foreach (var cmd in key.KeyStrokes)
+                foreach (var cmd in button.KeyStrokes)
                 {
                     buffer[bufferIndex] = (byte)cmd.KeyCodeType;
                     buffer[bufferIndex + 1] = (byte)((cmd.KeyCode & 0xFF00) >> 8);
