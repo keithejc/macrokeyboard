@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Reflection;
 using System.Windows.Forms;
 using static MacroKeysWriter.Button;
 
@@ -11,6 +13,12 @@ namespace MacroKeysWriter
         public FormMain()
         {
             InitializeComponent();
+
+            var assembly = Assembly.GetExecutingAssembly();
+            FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+            string version = fileVersionInfo.ProductVersion;
+            this.Text += ("  -  " + version);
+            Console.WriteLine("Version: " + version);
         }
 
         private void ButtonGetButtons_Click(object sender, EventArgs e)
