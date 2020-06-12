@@ -85,6 +85,12 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)..\gitversion\gitrevsubst.exe" "$(SolutionDir)..\.git" "$(ProjectDir)version.h.template" "$(ProjectDir)version.h"</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Version</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -102,6 +108,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)..\gitversion\gitrevsubst.exe" "$(SolutionDir)..\.git" "$(ProjectDir)version.h.template" "$(ProjectDir)version.h"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectCapability Include="VisualMicro" />
@@ -119,6 +128,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="version.h" />
     <ClInclude Include="__vm\.MacroKeyboard.vsarduino.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

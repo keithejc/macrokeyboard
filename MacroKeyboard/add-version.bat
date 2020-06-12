@@ -1,0 +1,1 @@
+"..\gitversion\gitrevsubst.exe" "..\.git" "version.h.template" "version.h"

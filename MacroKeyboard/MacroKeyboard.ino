@@ -2,6 +2,7 @@
 #include <EEPROM.h>
 #include "HID-Project.h"
 #include <AceButton.h>
+#include "version.h"
 
 using namespace ace_button;
 
@@ -575,9 +576,9 @@ void setup()
 	InitButtons();
 	LoadConfigFromEEPROM();
 
-	Serial.println(" MAX_COMMANDS_PER_BUTTON * 3 + 3 ");
-	Serial.println(MAX_COMMANDS_PER_BUTTON * 3 + 3);
-	Serial.println(SERIAL_BUFFER_LENGTH);
+	Serial.println();
+	Serial.print("Version ");
+	Serial.println(version);
 }
 
 void loop()
