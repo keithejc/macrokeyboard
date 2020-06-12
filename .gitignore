@@ -352,3 +352,6 @@ MacroKeyboardEditor/Properties/AssemblyInfo.cs
 MacroKeyboardEditor/Properties/AssemblyInfo.cs
 MacroKeyboard/version.h
 macrokeyboard/MacroKeyboard/__vm/
+MacroKeyboard/__vm/.MacroKeyboard.vsarduino.h
+MacroKeyboard/__vm/Compile.vmps.xml
+MacroKeyboard/__vm/Configuration.Debug.vmps.xml
