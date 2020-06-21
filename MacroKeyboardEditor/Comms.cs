@@ -172,20 +172,17 @@ namespace MacroKeysWriter
                         byte bufferIndex = 3;
                         for (int keycodeIndex = 0; keycodeIndex < maxNumKeyCodes; keycodeIndex++)
                         {
-                            if (replyBuffer[bufferIndex] == 0)
-                            {
-                                //no further data
-                                break;
-                            }
-
                             var keyStroke = new KeyStroke
                             {
-                                KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex],
-                                KeyCode = (UInt16)((replyBuffer[bufferIndex + 1] << 8) | replyBuffer[bufferIndex + 2])
+                                PressType = (PressType)replyBuffer[bufferIndex],
+                                KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex + 1],
+                                KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
                             };
-                            bufferIndex += 3;
-
-                            key.KeyStrokes.Add(keyStroke);
+                            bufferIndex += 4;
+                            if (keyStroke.KeyCode != 0)
+                            {
+                                key.KeyStrokes.Add(keyStroke);
+                            }
                         }
                     }
                 }
@@ -223,18 +220,19 @@ namespace MacroKeysWriter
                         byte bufferIndex = 3;
                         for (int keystrokeIndex = 0; keystrokeIndex < maxNumKeystrokesPerButton; keystrokeIndex++)
                         {
-                            if (replyBuffer[bufferIndex] != 0)
+                            var keyStroke = new KeyStroke
                             {
-                                var keyStroke = new KeyStroke
-                                {
-                                    KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex],
-                                    KeyCode = (UInt16)((replyBuffer[bufferIndex + 1] << 8) | replyBuffer[bufferIndex + 2])
-                                };
+                                PressType = (PressType)replyBuffer[bufferIndex],
+                                KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex + 1],
+                                KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
+                            };
 
+                            if (keyStroke.KeyCode != 0)
+                            {
                                 encoderControl.KeyStrokes.Add(keyStroke);
                             }
 
-                            bufferIndex += 3;
+                            bufferIndex += 4;
                         }
                         //add the button
                         encoderControls.Add(encoderControl);
@@ -248,17 +246,19 @@ namespace MacroKeysWriter
 
                         for (int keystrokeIndex = 0; keystrokeIndex < maxNumKeystrokesPerButton; keystrokeIndex++)
                         {
-                            if (replyBuffer[bufferIndex] != 0)
+                            var keyStroke = new KeyStroke
                             {
-                                var keyStroke = new KeyStroke
-                                {
-                                    KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex],
-                                    KeyCode = (UInt16)((replyBuffer[bufferIndex + 1] << 8) | replyBuffer[bufferIndex + 2])
-                                };
+                                PressType = (PressType)replyBuffer[bufferIndex],
+                                KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex + 1],
+                                KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
+                            };
 
+                            if (keyStroke.KeyCode != 0)
+                            {
                                 encoderControl.KeyStrokes.Add(keyStroke);
                             }
-                            bufferIndex += 3;
+
+                            bufferIndex += 4;
                         }
                         //add the clockwise control
                         encoderControls.Add(encoderControl);
@@ -272,17 +272,18 @@ namespace MacroKeysWriter
 
                         for (int keystrokeIndex = 0; keystrokeIndex < maxNumKeystrokesPerButton; keystrokeIndex++)
                         {
-                            if (replyBuffer[bufferIndex] != 0)
+                            var keyStroke = new KeyStroke
                             {
-                                var keyStroke = new KeyStroke
-                                {
-                                    KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex],
-                                    KeyCode = (UInt16)((replyBuffer[bufferIndex + 1] << 8) | replyBuffer[bufferIndex + 2])
-                                };
+                                PressType = (PressType)replyBuffer[bufferIndex],
+                                KeyCodeType = (KeyCodeType)replyBuffer[bufferIndex + 1],
+                                KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
+                            };
 
+                            if (keyStroke.KeyCode != 0)
+                            {
                                 encoderControl.KeyStrokes.Add(keyStroke);
                             }
-                            bufferIndex += 3;
+                            bufferIndex += 4;
                         }
                         //add the anticlockwise control
                         encoderControls.Add(encoderControl);
@@ -318,6 +319,11 @@ namespace MacroKeysWriter
                             NumEncoders = replyBuffer[3],
                             MaxNumKeystrokesPerButton = replyBuffer[4]
                         };
+                        settings.Version = "";
+                        for (int i = 5; i < numBytes; i++)
+                        {
+                            settings.Version += (char)replyBuffer[i];
+                        }
                     }
                 }
             }
@@ -367,10 +373,11 @@ namespace MacroKeysWriter
                 var bufferIndex = 3;
                 foreach (var cmd in button.KeyStrokes)
                 {
-                    buffer[bufferIndex] = (byte)cmd.KeyCodeType;
-                    buffer[bufferIndex + 1] = (byte)((cmd.KeyCode & 0xFF00) >> 8);
-                    buffer[bufferIndex + 2] = (byte)((cmd.KeyCode & 0xFF));
-                    bufferIndex += 3;
+                    buffer[bufferIndex] = (byte)cmd.PressType;
+                    buffer[bufferIndex + 1] = (byte)cmd.KeyCodeType;
+                    buffer[bufferIndex + 2] = (byte)((cmd.KeyCode & 0xFF00) >> 8);
+                    buffer[bufferIndex + 3] = (byte)((cmd.KeyCode & 0xFF));
+                    bufferIndex += 4;
                 }
                 replyLength = SendCommand(buffer, out _);
             }

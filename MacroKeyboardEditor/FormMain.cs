@@ -72,6 +72,10 @@ namespace MacroKeysWriter
         private void LoadButtons()
         {
             panelStatus.Text = MacroKeyboard.ReadKeyboard();
+            if (MacroKeyboard.KeyboardSettings != null)
+            {
+                labelKeyboardVersion.Text = MacroKeyboard.KeyboardSettings.Version;
+            }
             listBoxButtons.Items.Clear();
             foreach (var item in MacroKeyboard.Buttons)
             {

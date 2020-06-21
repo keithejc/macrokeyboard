@@ -41,6 +41,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.buttonWrite = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
+            this.labelKeyboardVersion = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // buttonGetButtons
@@ -174,12 +175,21 @@
             this.label5.TabIndex = 14;
             this.label5.Text = "<- drag ->";
             // 
+            // labelKeyboardVersion
+            // 
+            this.labelKeyboardVersion.AutoSize = true;
+            this.labelKeyboardVersion.Location = new System.Drawing.Point(16, 418);
+            this.labelKeyboardVersion.Name = "labelKeyboardVersion";
+            this.labelKeyboardVersion.Size = new System.Drawing.Size(0, 20);
+            this.labelKeyboardVersion.TabIndex = 15;
+            // 
             // FormMain
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1028, 450);
+            this.Controls.Add(this.labelKeyboardVersion);
             this.Controls.Add(this.buttonWrite);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
@@ -221,6 +231,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button buttonWrite;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label labelKeyboardVersion;
     }
 }
 

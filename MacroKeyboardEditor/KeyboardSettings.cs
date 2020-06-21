@@ -11,5 +11,6 @@ namespace MacroKeysWriter
         public byte MaxNumKeystrokesPerButton { get; set; }
         public byte NumButtons { get; set; }
         public byte NumEncoders { get; set; }
+        public string Version { get; set; }
     }
 }

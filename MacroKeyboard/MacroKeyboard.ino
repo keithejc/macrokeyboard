@@ -26,8 +26,9 @@ constexpr byte WriteEncoderAntiClockwiseCommand = 0x06;
 constexpr byte KeyboardKeycodeType = 0x01;
 constexpr byte ConsumerKeycodeType = 0x02;
 constexpr byte SystemKeycodeType = 0x03;
+constexpr byte DelayKeycodeType = 0x00;
 
-constexpr byte StorageBytesPerCommand = 2;
+constexpr byte StorageBytesPerCommand = 3;
 
 ////===========================================================
 //keyboard hardware definition - enter config for your hardware
@@ -46,9 +47,17 @@ constexpr auto SERIAL_BUFFER_LENGTH = MAX_COMMANDS_PER_BUTTON * 3 + 10;
 //=================================
 //=================================
 
+typedef enum
+{
+	press = 0,
+	release = 1,
+	pressAndRelease = 2
+} PressType;
+
 typedef struct
 {
-	byte commandType;
+	PressType pressType : 4;
+	unsigned int commandType : 4;
 	uint16_t command;
 } keystroke;
 
@@ -112,29 +121,39 @@ void InitButtons()
 		encoderPinIndex += 3;
 	}
 
-	buttons[0].keystrokes[0].commandType = ConsumerKeycodeType;
-	buttons[0].keystrokes[0].command = MEDIA_PREV;
+	//buttons[0].keystrokes[0].commandType = ConsumerKeycodeType;
+	//buttons[0].keystrokes[0].command = MEDIA_PREV;
 
-	buttons[1].keystrokes[0].commandType = ConsumerKeycodeType;
-	buttons[1].keystrokes[0].command = MEDIA_NEXT;
+	//buttons[1].keystrokes[0].commandType = ConsumerKeycodeType;
+	//buttons[1].keystrokes[0].command = MEDIA_NEXT;
 
-	buttons[2].keystrokes[0].commandType = ConsumerKeycodeType;
-	buttons[2].keystrokes[0].command = CONSUMER_CALCULATOR;
+	//buttons[2].keystrokes[0].commandType = ConsumerKeycodeType;
+	//buttons[2].keystrokes[0].command = CONSUMER_CALCULATOR;
 
-	buttons[7].keystrokes[0].commandType = SystemKeycodeType;
-	buttons[7].keystrokes[0].command = SYSTEM_SLEEP;
+	//buttons[7].keystrokes[0].commandType = SystemKeycodeType;
+	//buttons[7].keystrokes[0].command = SYSTEM_SLEEP;
 
-	buttons[8].keystrokes[0].commandType = SystemKeycodeType;
-	buttons[8].keystrokes[0].command = SYSTEM_POWER_DOWN;
+	//buttons[8].keystrokes[0].commandType = SystemKeycodeType;
+	//buttons[8].keystrokes[0].command = SYSTEM_POWER_DOWN;
 
-	encoders[0].buttonKeystrokes[0].commandType = ConsumerKeycodeType;
-	encoders[0].buttonKeystrokes[0].command = MEDIA_PLAY_PAUSE;
-	encoders[0].clockwiseKeystrokes[0].commandType = ConsumerKeycodeType;
-	encoders[0].clockwiseKeystrokes[0].command = MEDIA_VOLUME_UP;
-	encoders[0].antiClockwiseKeystrokes[0].commandType = ConsumerKeycodeType;
-	encoders[0].antiClockwiseKeystrokes[0].command = MEDIA_VOLUME_DOWN;
+	//encoders[0].buttonKeystrokes[0].commandType = ConsumerKeycodeType;
+	//encoders[0].buttonKeystrokes[0].command = MEDIA_PLAY_PAUSE;
+	//encoders[0].clockwiseKeystrokes[0].commandType = ConsumerKeycodeType;
+	//encoders[0].clockwiseKeystrokes[0].command = MEDIA_VOLUME_UP;
+	//encoders[0].antiClockwiseKeystrokes[0].commandType = ConsumerKeycodeType;
+	//encoders[0].antiClockwiseKeystrokes[0].command = MEDIA_VOLUME_DOWN;
 
-	SaveConfigToEEPROM();
+	//buttons[3].keystrokes[0].commandType = KeyboardKeycodeType;
+	//buttons[3].keystrokes[0].command = KEY_LEFT_CTRL;
+	//buttons[3].keystrokes[0].pressType = press;
+	//buttons[3].keystrokes[1].commandType = KeyboardKeycodeType;
+	//buttons[3].keystrokes[1].command = KEY_E;
+	//buttons[3].keystrokes[1].pressType = press;
+	//buttons[3].keystrokes[2].commandType = KeyboardKeycodeType;
+	//buttons[3].keystrokes[2].command = KEY_C;
+	//buttons[3].keystrokes[2].pressType = pressAndRelease;
+
+	//SaveConfigToEEPROM();
 }
 
 void HandleButtonEvent(AceButton* aceButton, uint8_t eventType, uint8_t /* buttonState */)
@@ -152,14 +171,6 @@ void HandleButtonEvent(AceButton* aceButton, uint8_t eventType, uint8_t /* butto
 		}
 		break;
 	case AceButton::kEventReleased:
-		if (aceButton->getId() >= 100)
-		{
-			ReleaseKeystrokes(encoders[aceButton->getId() - 100].buttonKeystrokes, MAX_COMMANDS_PER_BUTTON);
-		}
-		else
-		{
-			ReleaseKeystrokes(buttons[aceButton->getId()].keystrokes, MAX_COMMANDS_PER_BUTTON);
-		}
 		break;
 	}
 }
@@ -168,45 +179,46 @@ void PressKeystrokes(keystroke* keystrokes, int numKeystrokes)
 {
 	for (byte ksIndex = 0; ksIndex < numKeystrokes; ksIndex++)
 	{
-		if (keystrokes[ksIndex].commandType == 0)
+		if (keystrokes[ksIndex].command == 0)
 		{
 			break;
 		}
 
 		switch (keystrokes[ksIndex].commandType)
 		{
-			//system keys don't support chords so they are just written, not pressed down and then released later
 		case SystemKeycodeType:
 			System.write((SystemKeycode)keystrokes[ksIndex].command);
 			break;
 		case ConsumerKeycodeType:
-			Consumer.press((ConsumerKeycode)keystrokes[ksIndex].command);
+			Consumer.write((ConsumerKeycode)keystrokes[ksIndex].command);
 			break;
 		case KeyboardKeycodeType:
-			Keyboard.press((KeyboardKeycode)keystrokes[ksIndex].command);
-			break;
-		default:
-			break;
-		}
-	}
-}
+			switch (keystrokes[ksIndex].pressType)
+			{
+			case press:
+				Keyboard.press((KeyboardKeycode)keystrokes[ksIndex].command);
+				break;
+			case release:
+				Keyboard.release((KeyboardKeycode)keystrokes[ksIndex].command);
+				break;
+			case pressAndRelease:
+				Keyboard.write((KeyboardKeycode)keystrokes[ksIndex].command);
+				break;
+			default:
+				break;
+			}
 
-void ReleaseKeystrokes(keystroke* keystrokes, int numKeystrokes)
-{
-	for (byte ksIndex = 0; ksIndex < numKeystrokes; ksIndex++) {
-		switch (keystrokes[ksIndex].commandType)
-		{
-			//system keys don't support chords so releasing isn't relevant
-		case ConsumerKeycodeType:
-			Consumer.release((ConsumerKeycode)keystrokes[ksIndex].command);
 			break;
-		case KeyboardKeycodeType:
-			Keyboard.release((KeyboardKeycode)keystrokes[ksIndex].command);
+		case DelayKeycodeType:
+			delay(keystrokes[ksIndex].command);
 			break;
 		default:
 			break;
 		}
 	}
+
+	//cleanup if a button is left pressed
+	Keyboard.releaseAll();
 }
 
 //read encoders and make the buttons check for presses
@@ -218,13 +230,11 @@ void CheckButtons()
 		if (encoderVal < 0)
 		{
 			PressKeystrokes(encoders[encoderIndex].clockwiseKeystrokes, MAX_COMMANDS_PER_BUTTON);
-			ReleaseKeystrokes(encoders[encoderIndex].clockwiseKeystrokes, MAX_COMMANDS_PER_BUTTON);
 			encoders[encoderIndex].encoder->write(0);
 		}
 		else if (encoderVal > 0)
 		{
 			PressKeystrokes(encoders[encoderIndex].antiClockwiseKeystrokes, MAX_COMMANDS_PER_BUTTON);
-			ReleaseKeystrokes(encoders[encoderIndex].antiClockwiseKeystrokes, MAX_COMMANDS_PER_BUTTON);
 			encoders[encoderIndex].encoder->write(0);
 		}
 
@@ -288,54 +298,15 @@ void ProcessIncomingCommands()
 	WipeSerialBuffer();
 }
 
-//send button config command
+//send button config to the pc
 void SendButtonConfig(int buttonIndex)
 {
 	if (buttonIndex < NumButtons)
 	{
-		WipeSerialBuffer();
-		serialBuffer[0] = 0xEE;
-		serialBuffer[1] = ReadButtonCommand;
-		serialBuffer[2] = buttonIndex;
-		int serialBufferIndex = 3;
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			serialBuffer[serialBufferIndex] = buttons[buttonIndex].keystrokes[cmdIndex].commandType;
-			serialBuffer[serialBufferIndex + 1] = (buttons[buttonIndex].keystrokes[cmdIndex].command & 0xFF00) >> 8;
-			serialBuffer[serialBufferIndex + 2] = buttons[buttonIndex].keystrokes[cmdIndex].command & 0xFF;
-			serialBufferIndex += 3;
-		}
-		Serial.write(serialBuffer, MAX_COMMANDS_PER_BUTTON * 3 + 3);
-	}
-}
-
-//send encoder config command. doesn't use the serial buffer as the buffer
-//would have to be too big for the memory
-void SendEncoderConfig(byte encoderIndex)
-{
-	if (encoderIndex < NumEncoders)
-	{
 		Serial.write((byte)0xEE);
-		Serial.write((byte)ReadEncoderCommand);
-		Serial.write((byte)encoderIndex);
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			Serial.write(encoders[encoderIndex].buttonKeystrokes[cmdIndex].commandType);
-			Serial.write((byte)((encoders[encoderIndex].buttonKeystrokes[cmdIndex].command & 0xFF00) >> 8));
-			Serial.write((byte)(encoders[encoderIndex].buttonKeystrokes[cmdIndex].command & 0xFF));
-		}
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			Serial.write(encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].commandType);
-			Serial.write((byte)((encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].command & 0xFF00) >> 8));
-			Serial.write((byte)(encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].command & 0xFF));
-		}
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			Serial.write(encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].commandType);
-			Serial.write((byte)((encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].command & 0xFF00) >> 8));
-			Serial.write((byte)(encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].command & 0xFF));
-		}
+		Serial.write((byte)ReadButtonCommand);
+		Serial.write((byte)buttonIndex);
+		sendKeystrokes(buttons[buttonIndex].keystrokes);
 	}
 }
 
@@ -350,6 +321,32 @@ void ReceiveEncoderButtonConfig(int encoderIndex)
 		SendSuccess(encoderIndex);
 
 		SaveConfigToEEPROM();
+	}
+}
+
+void sendKeystrokes(keystroke keystrokes[])
+{
+	for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
+	{
+		Serial.write(keystrokes[cmdIndex].pressType);
+		Serial.write(keystrokes[cmdIndex].commandType);
+		Serial.write((byte)((keystrokes[cmdIndex].command & 0xFF00) >> 8));
+		Serial.write((byte)(keystrokes[cmdIndex].command & 0xFF));
+	}
+}
+
+//send encoder config command. doesn't use the serial buffer as the buffer
+//would have to be too big for the memory
+void SendEncoderConfig(byte encoderIndex)
+{
+	if (encoderIndex < NumEncoders)
+	{
+		Serial.write((byte)0xEE);
+		Serial.write((byte)ReadEncoderCommand);
+		Serial.write((byte)encoderIndex);
+		sendKeystrokes(encoders[encoderIndex].buttonKeystrokes);
+		sendKeystrokes(encoders[encoderIndex].clockwiseKeystrokes);
+		sendKeystrokes(encoders[encoderIndex].antiClockwiseKeystrokes);
 	}
 }
 
@@ -400,25 +397,19 @@ void DecodeKeystrokes(byte* serialIndex, keystroke* keystrokes)
 	WipeKeystrokes(keystrokes);
 	for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 	{
-		if (serialBuffer[*serialIndex] == 0)
-		{
-			return;
-		}
-		else
-		{
-			//get command type then command from 2 bytes of serial data
-			keystrokes[cmdIndex].commandType = serialBuffer[*serialIndex];
-			keystrokes[cmdIndex].command = serialBuffer[*serialIndex + 1] << 8;
-			keystrokes[cmdIndex].command |= serialBuffer[*serialIndex + 2];
-			*serialIndex += 3;
-		}
+		//get command type then command from 2 bytes of serial data
+		keystrokes[cmdIndex].pressType = (PressType)serialBuffer[*serialIndex];
+		keystrokes[cmdIndex].commandType = serialBuffer[*serialIndex + 1];
+		keystrokes[cmdIndex].command = serialBuffer[*serialIndex + 2] << 8;
+		keystrokes[cmdIndex].command |= serialBuffer[*serialIndex + 3];
+		*serialIndex += 4;
 	}
 }
 void WipeKeystrokes(keystroke* keystrokes)
 {
 	for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 	{
-		//get command type then command from 2 bytes of serial data
+		keystrokes[cmdIndex].pressType = press;
 		keystrokes[cmdIndex].commandType = 0;
 		keystrokes[cmdIndex].command = 0;
 	}
@@ -443,7 +434,11 @@ void SendKeyboardSettings()
 	serialBuffer[2] = NumButtons;
 	serialBuffer[3] = NumEncoders;
 	serialBuffer[4] = MAX_COMMANDS_PER_BUTTON;
-	Serial.write(serialBuffer, 5);
+	for (int i = 0; i < version.length(); i++)
+	{
+		serialBuffer[i + 5] = version.charAt(i);
+	}
+	Serial.write(serialBuffer, 5 + version.length());
 }
 
 void WipeSerialBuffer()
@@ -460,6 +455,7 @@ void WipeKeyStrokeArray(keystroke* arr)
 	{
 		arr[i].command = 0;
 		arr[i].commandType = 0;
+		arr[i].pressType = pressAndRelease;
 	}
 }
 
@@ -482,34 +478,26 @@ void SaveConfigToEEPROM()
 	{
 		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 		{
-			EEPROM.update(address, (buttons[buttonIndex].keystrokes[cmdIndex].commandType << 6) |
-				(buttons[buttonIndex].keystrokes[cmdIndex].command & 0x3F00) >> 8);
-			EEPROM.update(address + 1, buttons[buttonIndex].keystrokes[cmdIndex].command & 0xFF);
-			address += 2;
+			EEPROM.put(address, buttons[buttonIndex].keystrokes[cmdIndex]);
+			address += sizeof(keystroke);
 		}
 	}
 	for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
 	{
 		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 		{
-			EEPROM.update(address, (encoders[encoderIndex].buttonKeystrokes[cmdIndex].commandType << 6) |
-				(encoders[encoderIndex].buttonKeystrokes[cmdIndex].command & 0x3F00) >> 8);
-			EEPROM.update(address + 1, encoders[encoderIndex].buttonKeystrokes[cmdIndex].command & 0xFF);
-			address += 2;
+			EEPROM.put(address, encoders[encoderIndex].buttonKeystrokes[cmdIndex]);
+			address += sizeof(keystroke);
 		}
 		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 		{
-			EEPROM.update(address, (encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].commandType << 6) |
-				(encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].command & 0x3F00) >> 8);
-			EEPROM.update(address + 1, encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].command & 0xFF);
-			address += 2;
+			EEPROM.put(address, encoders[encoderIndex].clockwiseKeystrokes[cmdIndex]);
+			address += sizeof(keystroke);
 		}
 		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 		{
-			EEPROM.update(address, (encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].commandType << 6) |
-				(encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].command & 0x3F00) >> 8);
-			EEPROM.update(address + 1, encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].command & 0xFF);
-			address += 2;
+			EEPROM.put(address, encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex]);
+			address += sizeof(keystroke);
 		}
 	}
 }
@@ -523,34 +511,26 @@ void LoadConfigFromEEPROM()
 		{
 			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 			{
-				buttons[buttonIndex].keystrokes[cmdIndex].commandType = (EEPROM.read(address) & 0xC0) >> 6;
-				buttons[buttonIndex].keystrokes[cmdIndex].command = (EEPROM.read(address) & 0x3F) << 8;
-				buttons[buttonIndex].keystrokes[cmdIndex].command |= EEPROM.read(address + 1);
-				address += 2;
+				EEPROM.get(address, buttons[buttonIndex].keystrokes[cmdIndex]);
+				address += sizeof(keystroke);
 			}
 		}
 		for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
 		{
 			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 			{
-				encoders[encoderIndex].buttonKeystrokes[cmdIndex].commandType = (EEPROM.read(address) & 0xC0) >> 6;
-				encoders[encoderIndex].buttonKeystrokes[cmdIndex].command = (EEPROM.read(address) & 0x3F) << 8;
-				encoders[encoderIndex].buttonKeystrokes[cmdIndex].command |= EEPROM.read(address + 1);
-				address += 2;
+				EEPROM.get(address, encoders[encoderIndex].buttonKeystrokes[cmdIndex]);
+				address += sizeof(keystroke);
 			}
 			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 			{
-				encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].commandType = (EEPROM.read(address) & 0xC0) >> 6;
-				encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].command = (EEPROM.read(address) & 0x3F) << 8;
-				encoders[encoderIndex].clockwiseKeystrokes[cmdIndex].command |= EEPROM.read(address + 1);
-				address += 2;
+				EEPROM.get(address, encoders[encoderIndex].clockwiseKeystrokes[cmdIndex]);
+				address += sizeof(keystroke);
 			}
 			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
 			{
-				encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].commandType = (EEPROM.read(address) & 0xC0) >> 6;
-				encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].command = (EEPROM.read(address) & 0x3F) << 8;
-				encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex].command |= EEPROM.read(address + 1);
-				address += 2;
+				EEPROM.get(address, encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex]);
+				address += sizeof(keystroke);
 			}
 		}
 	}
@@ -579,6 +559,12 @@ void setup()
 	Serial.println();
 	Serial.print("Version ");
 	Serial.println(version);
+
+	Serial.print("MAX_COMMANDS_PER_BUTTON ");
+	Serial.println(MAX_COMMANDS_PER_BUTTON);
+
+	Serial.print("SERIAL_BUFFER_LENGTH ");
+	Serial.println(SERIAL_BUFFER_LENGTH);
 }
 
 void loop()
