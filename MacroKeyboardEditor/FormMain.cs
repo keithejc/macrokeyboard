@@ -122,6 +122,11 @@ namespace MacroKeysWriter
                     {
                         if (button.KeyStrokes.Count < MacroKeyboard.KeyboardSettings.MaxNumKeystrokesPerButton)
                         {
+                            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
+                            {
+                                data.KeyStroke.PressType = PressType.Press;
+                            }
+
                             button.KeyStrokes.Add(data.KeyStroke);
                             LoadButtonMacro();
                         }

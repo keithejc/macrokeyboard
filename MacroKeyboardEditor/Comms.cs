@@ -42,6 +42,7 @@ namespace MacroKeysWriter
                         if (GetKeyboardSettings() != null)
                         {
                             Console.WriteLine("Found keyboard " + port);
+                            break;
                         }
                         else
                         {
@@ -179,7 +180,11 @@ namespace MacroKeysWriter
                                 KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
                             };
                             bufferIndex += 4;
-                            if (keyStroke.KeyCode != 0)
+                            if (keyStroke.KeyCode == 0)
+                            {
+                                break;
+                            }
+                            else
                             {
                                 key.KeyStrokes.Add(keyStroke);
                             }
@@ -227,7 +232,11 @@ namespace MacroKeysWriter
                                 KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
                             };
 
-                            if (keyStroke.KeyCode != 0)
+                            if (keyStroke.KeyCode == 0)
+                            {
+                                break;
+                            }
+                            else
                             {
                                 encoderControl.KeyStrokes.Add(keyStroke);
                             }
@@ -253,7 +262,11 @@ namespace MacroKeysWriter
                                 KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
                             };
 
-                            if (keyStroke.KeyCode != 0)
+                            if (keyStroke.KeyCode == 0)
+                            {
+                                break;
+                            }
+                            else
                             {
                                 encoderControl.KeyStrokes.Add(keyStroke);
                             }
@@ -279,7 +292,11 @@ namespace MacroKeysWriter
                                 KeyCode = (UInt16)((replyBuffer[bufferIndex + 2] << 8) | replyBuffer[bufferIndex + 3])
                             };
 
-                            if (keyStroke.KeyCode != 0)
+                            if (keyStroke.KeyCode == 0)
+                            {
+                                break;
+                            }
+                            else
                             {
                                 encoderControl.KeyStrokes.Add(keyStroke);
                             }
