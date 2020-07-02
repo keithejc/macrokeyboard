@@ -42,6 +42,8 @@
             this.buttonWrite = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.labelKeyboardVersion = new System.Windows.Forms.Label();
+            this.textBoxKeyboard = new System.Windows.Forms.TextBox();
+            this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.SuspendLayout();
             // 
             // buttonGetButtons
@@ -183,12 +185,32 @@
             this.labelKeyboardVersion.Size = new System.Drawing.Size(0, 20);
             this.labelKeyboardVersion.TabIndex = 15;
             // 
+            // textBoxKeyboard
+            // 
+            this.textBoxKeyboard.Location = new System.Drawing.Point(323, 593);
+            this.textBoxKeyboard.Name = "textBoxKeyboard";
+            this.textBoxKeyboard.Size = new System.Drawing.Size(340, 26);
+            this.textBoxKeyboard.TabIndex = 16;
+            this.textBoxKeyboard.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBoxKeyboard_KeyDown);
+            this.textBoxKeyboard.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBoxKeyboard_KeyPress);
+            this.textBoxKeyboard.KeyUp += new System.Windows.Forms.KeyEventHandler(this.textBoxKeyboard_KeyUp);
+            // 
+            // flowLayoutPanel1
+            // 
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(663, 782);
+            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(200, 100);
+            this.flowLayoutPanel1.TabIndex = 17;
+            // 
             // FormMain
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1028, 450);
+            this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.ClientSize = new System.Drawing.Size(1528, 1450);
+            this.Controls.Add(this.flowLayoutPanel1);
+            this.Controls.Add(this.textBoxKeyboard);
             this.Controls.Add(this.labelKeyboardVersion);
             this.Controls.Add(this.buttonWrite);
             this.Controls.Add(this.label4);
@@ -203,7 +225,6 @@
             this.Controls.Add(this.listBoxButtons);
             this.Controls.Add(this.buttonGetButtons);
             this.Controls.Add(this.label5);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.MaximizeBox = false;
             this.Name = "FormMain";
             this.ShowIcon = false;
@@ -232,6 +253,8 @@
         private System.Windows.Forms.Button buttonWrite;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label labelKeyboardVersion;
+        private System.Windows.Forms.TextBox textBoxKeyboard;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
     }
 }
 

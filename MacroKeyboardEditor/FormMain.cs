@@ -316,5 +316,41 @@ namespace MacroKeysWriter
                 panelStatus.Text = MacroKeyboard.WriteButton((Button)item);
             }
         }
+
+        private Keys currentKeyDown = Keys.None;
+
+        private void textBoxKeyboard_KeyDown(object sender, KeyEventArgs e)
+        {
+            Debug.WriteLine("KeyDown " + e.KeyCode);
+            e.Handled = true;
+
+            if (currentKeyDown != e.KeyCode)
+            {
+                currentKeyDown = e.KeyCode;
+                textBoxKeyboard.Text += (e.KeyCode + "(D)");
+            }
+        }
+
+        private void textBoxKeyboard_KeyUp(object sender, KeyEventArgs e)
+        {
+            Debug.WriteLine("KeyUp " + e.KeyCode);
+            e.Handled = true;
+            if (currentKeyDown == e.KeyCode)
+            {
+                var s = textBoxKeyboard.Text;
+                s = s.Substring(0, s.Length - 3) + "(P)";
+                textBoxKeyboard.Text = s;
+            }
+            else
+            {
+                textBoxKeyboard.Text += (e.KeyCode + "(U)");
+            }
+            currentKeyDown = Keys.None;
+        }
+
+        private void textBoxKeyboard_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            e.Handled = true;
+        }
     }
 }

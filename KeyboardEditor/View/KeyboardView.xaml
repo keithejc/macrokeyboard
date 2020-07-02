@@ -1,0 +1,34 @@
+﻿<Window x:Class="KeyboardEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KeyboardEditor"
+        mc:Ignorable="d"
+        Title="YAMK Keyboard Editor" Height="450" Width="800">
+    <Grid Margin="0,0,0,20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="397*" />
+            <ColumnDefinition Width="403*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Label Content="Status:" Grid.Row="0" HorizontalAlignment="Left" Margin="10,4,0,276" Name="label1" />
+        <TextBox Grid.Row="0" Height="43" HorizontalAlignment="Left" Margin="69,10,0,0" Name="txtStatus" VerticalAlignment="Top" Width="192" Text="{Binding Status}" Cursor="Arrow" IsReadOnly="True" />
+        <Label Content="Keyboard Type:" HorizontalAlignment="Left" Margin="336,10,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2" />
+        <Label Content="{Binding KeyboardType}" HorizontalAlignment="Left" Margin="53,10,0,0" VerticalAlignment="Top" Width="Auto" Grid.Column="1" />
+        <Label Content="Keyboard Version:" HorizontalAlignment="Left" Margin="336,36,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2" />
+        <Label Content="{Binding KeyboardSettings.Version}" HorizontalAlignment="Left" Margin="53,36,0,0" VerticalAlignment="Top" Width="Auto" Grid.Column="1" />
+        <ListView Name ="Buttons" ItemsSource="{Binding Buttons}" Margin="0,73,0,0" Grid.RowSpan="2" Grid.ColumnSpan="2">
+            <ListView.View>
+                <GridView x:Name="grdButtons">
+                    <GridViewColumn Header="Control" DisplayMemberBinding="{Binding Name}" />
+                    <GridViewColumn Header="Commands" DisplayMemberBinding="{Binding CommandString}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>
