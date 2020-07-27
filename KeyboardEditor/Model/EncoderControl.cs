@@ -1,44 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace KeyboardEditor.Model
 {
-    public enum EncoderControlType
+    public class EncoderControl : INotifyPropertyChanged
     {
-        Button,
-        Clockwise,
-        AntiClockwise
-    }
+        private Button button;
+        private Button clockwiseStep;
+        private Button antiClockwiseStep;
+        private byte stepSize;
 
-    public class EncoderControl : Button
-    {
-        public EncoderControlType EncoderControlType { get; set; }
         public int EncoderIndex { get; set; }
+        public Button Button { get => button; set { button = value; OnPropertyChanged("Button"); } }
+        public Button ClockwiseStep { get => clockwiseStep; set { clockwiseStep = value; OnPropertyChanged("ClockwiseStep"); } }
+        public Button AntiClockwiseStep { get => antiClockwiseStep; set { antiClockwiseStep = value; OnPropertyChanged("AntiClockwiseStep"); } }
+        public byte StepSize { get => stepSize; set { stepSize = value; OnPropertyChanged("StepSize"); } }
+
+        public EncoderControl()
+        {
+            button = new Button();
+            clockwiseStep = new Button();
+            antiClockwiseStep = new Button();
+        }
+
+        public string Name => this.ToString();
 
         public override string ToString()
         {
             var str = "Encoder " + (EncoderIndex + 1);
-            switch (EncoderControlType)
-            {
-                case EncoderControlType.Button:
-                    str += " Button";
-                    break;
-
-                case EncoderControlType.Clockwise:
-                    str += " Clockwise";
-                    break;
-
-                case EncoderControlType.AntiClockwise:
-                    str += " AntiClockwise";
-                    break;
-
-                default:
-                    break;
-            }
             return str;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

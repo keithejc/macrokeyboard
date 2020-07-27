@@ -39,7 +39,8 @@ namespace KeyboardEditor.ViewModel
                 keyboard.Buttons = value;
             }
         }
-        public string KeyboardType { get { return KeyboardSettings.NumButtons + " buttons, " + KeyboardSettings.NumEncoders + " Encoders " + KeyboardSettings.MaxNumKeystrokesPerButton + " commands per button"; } }
+
+        public string KeyboardType { get { return ""; } }// KeyboardSettings.NumButtons + " buttons, " + KeyboardSettings.NumEncoders + " Encoders "; } }
         public string Status { get; set; }
 
         private System.Windows.Input.ICommand mUpdater;

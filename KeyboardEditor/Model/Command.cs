@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,45 +16,44 @@ namespace KeyboardEditor.Model
 
     public enum CommandType
     {
-        Delay = 0,
+        NoCommand = 0,
         Keyboard = 1,
-        Consumer = 2,
-        System = 3
+        Delay = 2,
+        LedLightSingle = 3,
+        LedClearAll = 4,
+        LedCustomPattern = 5
     }
 
     public class Command
     {
+        public CommandType CommandType;
+    }
+
+    public class KeyboardCommand : Command
+    {
         public PressType PressType;
-        public CommandType KeyCodeType;
         public UInt16 KeyCode;
 
-        public Command()
-        {
-            PressType = PressType.PressAndRelease;
-        }
+        public string Name => this.ToString();
 
         public override string ToString()
         {
-            var cmdString = "";
-            switch (KeyCodeType)
-            {
-                case CommandType.Keyboard:
-                    cmdString = Enum.GetName(typeof(KeyboardKeycode), KeyCode) + " " + Enum.GetName(typeof(PressType), PressType);
+            var cmdString = Enum.GetName(typeof(KeyboardKeycode), KeyCode) + " " + Enum.GetName(typeof(PressType), PressType);
+            Debug.WriteLine("Command " + cmdString);
+            return cmdString;
+        }
+    }
 
-                    break;
+    public class DelayCommand : Command
+    {
+        public ushort DelayMs;
 
-                case CommandType.Consumer:
-                    cmdString = Enum.GetName(typeof(ConsumerKeycode), KeyCode);
-                    break;
+        public string Name => this.ToString();
 
-                case CommandType.System:
-                    cmdString = Enum.GetName(typeof(SystemKeycode), KeyCode);
-                    break;
-
-                default:
-                    break;
-            }
-
+        public override string ToString()
+        {
+            var cmdString = "Delay " + DelayMs / 1000 + "s";
+            Debug.WriteLine("Command " + cmdString);
             return cmdString;
         }
     }

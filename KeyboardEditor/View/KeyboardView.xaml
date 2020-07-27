@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KeyboardEditor"
         mc:Ignorable="d"
-        Title="YAMK Keyboard Editor" Height="450" Width="800">
+        Title="MK Keyboard Editor" Height="450" Width="800">
     <Grid Margin="0,0,0,20">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="397*" />
@@ -22,13 +22,26 @@
         <Label Content="{Binding KeyboardType}" HorizontalAlignment="Left" Margin="53,10,0,0" VerticalAlignment="Top" Width="Auto" Grid.Column="1" />
         <Label Content="Keyboard Version:" HorizontalAlignment="Left" Margin="336,36,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2" />
         <Label Content="{Binding KeyboardSettings.Version}" HorizontalAlignment="Left" Margin="53,36,0,0" VerticalAlignment="Top" Width="Auto" Grid.Column="1" />
-        <ListView Name ="Buttons" ItemsSource="{Binding Buttons}" Margin="0,73,0,0" Grid.RowSpan="2" Grid.ColumnSpan="2">
-            <ListView.View>
-                <GridView x:Name="grdButtons">
-                    <GridViewColumn Header="Control" DisplayMemberBinding="{Binding Name}" />
-                    <GridViewColumn Header="Commands" DisplayMemberBinding="{Binding CommandString}" />
-                </GridView>
-            </ListView.View>
+        <ListView Name ="Buttons" Margin="0,73,0,0" ItemsSource="{Binding Buttons}" Grid.RowSpan="2" Grid.ColumnSpan="2">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Background="LightPink" Orientation="Horizontal">
+                        <TextBlock Text="{Binding Name}" Margin="5,0,0,0"></TextBlock>
+                        <ListView Background="LightBlue" Margin="8,0,0,0" ItemsSource="{Binding Commands}" Width="Auto">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Background="LightPink"  Text="{Binding Name}" Margin="5,0,5,0"></TextBlock>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel></WrapPanel>
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                        </ListView>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
         </ListView>
     </Grid>
 </Window>

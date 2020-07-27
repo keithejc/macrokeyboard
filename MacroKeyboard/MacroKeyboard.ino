@@ -1,6 +1,19 @@
+#include <FastLED.h>
+#include <FastCRC_tables.h>
+#include <FastCRC_cpu.h>
+#include <FastCRC.h>
 #include <Encoder.h>
 #include <EEPROM.h>
+
+#define TEENSY_BUILD
+
+#ifdef TEENSY_BUILD
+#include <Keyboard.h>
+
+#else
 #include "HID-Project.h"
+#endif // asds
+
 #include <AceButton.h>
 #include "version.h"
 
@@ -8,31 +21,16 @@ using namespace ace_button;
 
 constexpr auto DEBOUNCE_DELAY = 10;
 constexpr auto SERIAL_BAUD_RATE = 9600;
-constexpr byte EEPROM_INTEGRITY_BYTE = 123;
-constexpr byte EEPROM_DATA_START = 0x10;
-
-constexpr byte SERIAL_START_BYTE = 0xEE;
-constexpr byte SERIAL_END_BYTE = 0xFF;
-constexpr byte SERIAL_SUCCESS_BYTE = 0xBB;
-
-constexpr byte QuerySettingsCommand = 0x00;
-constexpr byte ReadButtonCommand = 0x01;
-constexpr byte ReadEncoderCommand = 0x02;
-constexpr byte WriteButtonCommand = 0x03;
-constexpr byte WriteEncoderButtonCommand = 0x04;
-constexpr byte WriteEncoderClockwiseCommand = 0x05;
-constexpr byte WriteEncoderAntiClockwiseCommand = 0x06;
-
-constexpr byte KeyboardKeycodeType = 0x01;
-constexpr byte ConsumerKeycodeType = 0x02;
-constexpr byte SystemKeycodeType = 0x03;
-constexpr byte DelayKeycodeType = 0x00;
-
-constexpr byte StorageBytesPerCommand = 3;
-
+constexpr byte EEPROM_DATA_START = 0x0;
+constexpr uint16_t EEPROM_INITIALISED = 0x1DEA;
 ////===========================================================
 //keyboard hardware definition - enter config for your hardware
 //=============================================================
+
+#ifdef TEENSY_BUILD
+
+#else
+
 constexpr byte NumButtons = 9;
 constexpr byte ButtonPins[] = { 10, 9,8,7,6,5,4,3,2 }; //normal pressy buttons
 constexpr byte NumEncoders = 1;
@@ -44,81 +42,137 @@ constexpr auto MAX_COMMANDS_PER_BUTTON = (EepromSize - 24) / ((NumButtons + NumE
 //suitable for a single keystroke array
 constexpr auto SERIAL_BUFFER_LENGTH = MAX_COMMANDS_PER_BUTTON * 3 + 10;
 
+#endif // TEENSY_BUILD
+
 //=================================
 //=================================
+
+//Commands
+typedef	enum
+{
+	NoCommand = 0,
+	KeyboardCommand = 1,
+	DelayCommand = 2,
+	LedLightSingle = 3,
+	LedClearAll = 4,
+	LedCustomPattern = 5
+} CommandType;
 
 typedef enum
 {
-	press = 0,
-	release = 1,
-	pressAndRelease = 2
-} PressType;
+	Press = 0,
+	Release = 1,
+	PressAndRelease = 2
+} PressTypeEnum;
 
 typedef struct
 {
-	PressType pressType : 4;
-	unsigned int commandType : 4;
-	uint16_t command;
-} keystroke;
+	PressTypeEnum PressType;
+	uint16_t KeyCode;
+} KeyboardCommandStruct;
+
+typedef struct
+{
+	byte LedIndex;
+	CRGB Colour;
+	byte DurationTenthsSec;
+} LedLightSingleStruct;
 
 typedef struct
 {
 	AceButton aceButton;
-	keystroke keystrokes[MAX_COMMANDS_PER_BUTTON];
 	byte pin;
 	byte index;
-} button;
+} ButtonStruct;
 
 typedef struct
 {
 	AceButton aceButton;
-	keystroke buttonKeystrokes[MAX_COMMANDS_PER_BUTTON];
-
 	Encoder* encoder;
-	keystroke clockwiseKeystrokes[MAX_COMMANDS_PER_BUTTON];
-	keystroke antiClockwiseKeystrokes[MAX_COMMANDS_PER_BUTTON];
-} encoder;
+	byte step;
+} EncoderStruct;
 
 void HandleButtonEvent(AceButton*, uint8_t, uint8_t);
 
-encoder encoders[NumEncoders];
-button buttons[NumButtons];
+uint16_t LookupTableStartAddress;
+uint16_t SettingsTableStartAddress;
 
-// ===========================================
-// Button functions
-// ===========================================
+constexpr byte NumLeds = 10;
+constexpr uint8_t LED_CLOCK_PIN = 11;
+constexpr uint8_t LED_DATA_PIN = 12;
 
-void InitButtons()
+byte NumButtons = 0;
+byte* ButtonPins;// = { 23,22, 21, 20, 19, 18, 17, 16, 15, 14 }; //normal pressy buttons
+byte NumEncoders = 0;
+byte* EncoderPins;// [] = { 5, 6, 7, 8, 9, 10 }; //encoder clicky button, then the 2 rotary encoder pins
+
+EncoderStruct* encoders;
+ButtonStruct* buttons;
+CRGB* ledArray;
+byte ledChipset;
+void Initialise()
 {
-	for (byte buttonIndex = 0; buttonIndex < NumButtons; buttonIndex++)
+	uint16_t initialised;
+	EEPROM.get(0, initialised);
+	if (initialised == EEPROM_INITIALISED)
 	{
-		//set button pin for input
-		pinMode(ButtonPins[buttonIndex], INPUT_PULLUP);
-		buttons[buttonIndex].aceButton.init(ButtonPins[buttonIndex], HIGH, buttonIndex);
-		buttons[buttonIndex].aceButton.setEventHandler(HandleButtonEvent);
+		//get settings
+		EEPROM.get(2, LookupTableStartAddress);
+		EEPROM.get(4, SettingsTableStartAddress);
 
-		WipeKeyStrokeArray(buttons[buttonIndex].keystrokes);
+		byte NumLeds = EEPROM.read(6);
+		if (NumLeds > 0)
+		{
+			ledArray = new CRGB[NumLeds];
+			FastLED.addLeds<APA102, LED_DATA_PIN, LED_CLOCK_PIN, BGR>(ledArray, NumLeds);
+		}
 
-		buttons[buttonIndex].index = buttonIndex;
-	}
+		NumButtons = EEPROM.read(7);
+		if (NumButtons > 0)
+		{
+			ButtonPins = new byte[NumButtons];
+			EEPROM.get(8, ButtonPins);
+			buttons = new ButtonStruct[NumButtons];
+		}
 
-	int encoderPinIndex = 0;
-	for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
-	{
-		//set button pin for input
-		pinMode(EncoderPins[encoderPinIndex], INPUT_PULLUP);
-		pinMode(EncoderPins[encoderPinIndex + 1], INPUT_PULLUP);
-		pinMode(EncoderPins[encoderPinIndex + 2], INPUT_PULLUP);
+		NumEncoders = EEPROM.read(8 + NumButtons);
+		if (NumEncoders > 0)
+		{
+			EncoderPins = new byte[NumEncoders * 3];
+			EEPROM.get(9 + NumButtons, EncoderPins);
+			encoders = new EncoderStruct[NumEncoders];
+		}
 
-		encoders[encoderIndex].aceButton.init(EncoderPins[encoderIndex], HIGH, encoderIndex + 100);
-		encoders[encoderIndex].aceButton.setEventHandler(HandleButtonEvent);
+		//settings table
+		for (size_t i = 0; i < NumEncoders; i++)
+		{
+			encoders[i].step = EEPROM.read(SettingsTableStartAddress + i);
+		}
 
-		WipeKeyStrokeArray(encoders[encoderIndex].antiClockwiseKeystrokes);
-		WipeKeyStrokeArray(encoders[encoderIndex].clockwiseKeystrokes);
-		WipeKeyStrokeArray(encoders[encoderIndex].buttonKeystrokes);
+		//initilaise buttons and encoders
+		for (byte buttonIndex = 0; buttonIndex < NumButtons; buttonIndex++)
+		{
+			//set button pin for input
+			pinMode(ButtonPins[buttonIndex], INPUT_PULLUP);
+			buttons[buttonIndex].aceButton.init(ButtonPins[buttonIndex], HIGH, buttonIndex);
+			buttons[buttonIndex].aceButton.setEventHandler(HandleButtonEvent);
+			buttons[buttonIndex].index = buttonIndex;
+		}
 
-		encoders[encoderIndex].encoder = new Encoder(EncoderPins[encoderPinIndex + 1], EncoderPins[encoderPinIndex + 2]);
-		encoderPinIndex += 3;
+		int encoderPinIndex = 0;
+		for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
+		{
+			//set button pin for input
+			pinMode(EncoderPins[encoderPinIndex], INPUT_PULLUP);
+			pinMode(EncoderPins[encoderPinIndex + 1], INPUT_PULLUP);
+			pinMode(EncoderPins[encoderPinIndex + 2], INPUT_PULLUP);
+
+			encoders[encoderIndex].aceButton.init(EncoderPins[encoderPinIndex], HIGH, encoderIndex + 100);
+			encoders[encoderIndex].aceButton.setEventHandler(HandleButtonEvent);
+
+			encoders[encoderIndex].encoder = new Encoder(EncoderPins[encoderPinIndex + 1], EncoderPins[encoderPinIndex + 2]);
+			encoderPinIndex += 3;
+		}
 	}
 
 	//buttons[0].keystrokes[0].commandType = ConsumerKeycodeType;
@@ -145,10 +199,10 @@ void InitButtons()
 
 	//buttons[3].keystrokes[0].commandType = KeyboardKeycodeType;
 	//buttons[3].keystrokes[0].command = KEY_LEFT_CTRL;
-	//buttons[3].keystrokes[0].pressType = press;
+	//buttons[3].keystrokes[0].pressType = Press;
 	//buttons[3].keystrokes[1].commandType = KeyboardKeycodeType;
 	//buttons[3].keystrokes[1].command = KEY_E;
-	//buttons[3].keystrokes[1].pressType = press;
+	//buttons[3].keystrokes[1].pressType = Press;
 	//buttons[3].keystrokes[2].commandType = KeyboardKeycodeType;
 	//buttons[3].keystrokes[2].command = KEY_C;
 	//buttons[3].keystrokes[2].pressType = pressAndRelease;
@@ -156,69 +210,141 @@ void InitButtons()
 	//SaveConfigToEEPROM();
 }
 
+void clearLeds()
+{
+	for (size_t i = 0; i < 10; i++)
+	{
+		ledArray[i] = CRGB(0, 0, 0);
+	}
+	FastLED.show();
+}
+
 void HandleButtonEvent(AceButton* aceButton, uint8_t eventType, uint8_t /* buttonState */)
 {
 	switch (eventType)
 	{
 	case AceButton::kEventPressed:
-		if (aceButton->getId() >= 100)
-		{
-			PressKeystrokes(encoders[aceButton->getId() - 100].buttonKeystrokes, MAX_COMMANDS_PER_BUTTON);
-		}
-		else
-		{
-			PressKeystrokes(buttons[aceButton->getId()].keystrokes, MAX_COMMANDS_PER_BUTTON);
-		}
+		RunButtonCommands(aceButton->getId());
+
 		break;
 	case AceButton::kEventReleased:
 		break;
 	}
 }
 
-void PressKeystrokes(keystroke* keystrokes, int numKeystrokes)
+//get the eeprom address of this button's commands
+//found in a lookup table
+//buttons first, then encoder buttons
+int LookupButtonCommandArrayAddress(byte buttonIndex)
 {
-	for (byte ksIndex = 0; ksIndex < numKeystrokes; ksIndex++)
+	int address = 0;
+	if (buttonIndex < 100)
 	{
-		if (keystrokes[ksIndex].command == 0)
-		{
-			break;
-		}
-
-		switch (keystrokes[ksIndex].commandType)
-		{
-		case SystemKeycodeType:
-			System.write((SystemKeycode)keystrokes[ksIndex].command);
-			break;
-		case ConsumerKeycodeType:
-			Consumer.write((ConsumerKeycode)keystrokes[ksIndex].command);
-			break;
-		case KeyboardKeycodeType:
-			switch (keystrokes[ksIndex].pressType)
-			{
-			case press:
-				Keyboard.press((KeyboardKeycode)keystrokes[ksIndex].command);
-				break;
-			case release:
-				Keyboard.release((KeyboardKeycode)keystrokes[ksIndex].command);
-				break;
-			case pressAndRelease:
-				Keyboard.write((KeyboardKeycode)keystrokes[ksIndex].command);
-				break;
-			default:
-				break;
-			}
-
-			break;
-		case DelayKeycodeType:
-			delay(keystrokes[ksIndex].command);
-			break;
-		default:
-			break;
-		}
+		address = LookupTableStartAddress + (2 * buttonIndex);
+	}
+	else
+	{
+		//after the buttons - encoders.
+		address = LookupTableStartAddress + (2 * NumButtons) + (6 * (buttonIndex - 100));
 	}
 
-	//cleanup if a button is left pressed
-	Keyboard.releaseAll();
+	int commandArrayStart;
+	EEPROM.get(address, commandArrayStart);
+	return commandArrayStart;
+}
+
+//encoders are after the buttons, encoder button then clockwise step, then anti-clickwise step
+int LookupEncoderCommandArrayAddress(byte encoderIndex, bool isClockwise)
+{
+	int lookupTableAddress = LookupTableStartAddress + (2 * NumButtons);
+
+	lookupTableAddress += (encoderIndex * 6) + 2 + (isClockwise ? 0 : 2);
+
+	int commandArrayStart;
+	EEPROM.get(lookupTableAddress, commandArrayStart);
+	return commandArrayStart;
+}
+
+//find start of this button's commands in the eeprom
+//and run the commands for it
+void RunButtonCommands(byte buttonIndex)
+{
+	int commandAddress = LookupButtonCommandArrayAddress(buttonIndex);
+	//get a command type first, then whatever data follows it
+	do
+	{
+		commandAddress = GetCommandAndRunIt(commandAddress);
+	} while (commandAddress > 0);
+}
+
+void RunEncoderCommands(byte encoderIndex, bool isClockwise)
+{
+	int commandAddress = LookupEncoderCommandArrayAddress(encoderIndex, isClockwise);
+	//get a command type first, then whatever data follows it
+	do
+	{
+		commandAddress = GetCommandAndRunIt(commandAddress);
+	} while (commandAddress > 0);
+}
+
+//get a command, run it if applicable, then return the
+//address of the next command
+//or zero if no command next
+int GetCommandAndRunIt(int address)
+{
+	int nextAddress = 0;
+
+	CommandType commandType = NoCommand;
+	EEPROM.get(address, commandType);
+
+	switch (commandType)
+	{
+	case NoCommand:
+		nextAddress = 0;
+		break;
+	case KeyboardCommand:
+		KeyboardCommandStruct keyboardCommand;
+		EEPROM.get(address + 1, keyboardCommand);
+		nextAddress = address + sizeof(KeyboardCommandStruct) + 1;
+		PressKeys(&keyboardCommand);
+		break;
+	case DelayCommand:
+		uint16_t delayms;
+		EEPROM.get(address + 1, delayms);
+		nextAddress = address + 3;
+		delay(delayms);
+		break;
+	case LedLightSingle:
+		break;
+	case LedClearAll:
+		break;
+	case LedCustomPattern:
+		break;
+
+	default:
+		break;
+	}
+
+	return nextAddress;
+}
+
+void PressKeys(KeyboardCommandStruct* keyboardCommand)
+{
+	switch (keyboardCommand->PressType)
+	{
+	case Press:
+		Keyboard.press(keyboardCommand->KeyCode);
+		break;
+	case Release:
+		Keyboard.release(keyboardCommand->KeyCode);
+		break;
+	case PressAndRelease:
+		Keyboard.press(keyboardCommand->KeyCode);
+		Keyboard.release(keyboardCommand->KeyCode);
+		break;
+	default:
+		break;
+	}
 }
 
 //read encoders and make the buttons check for presses
@@ -227,14 +353,16 @@ void CheckButtons()
 	for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
 	{
 		int encoderVal = encoders[encoderIndex].encoder->read();
-		if (encoderVal < 0)
+		if (encoderVal > encoders[encoderIndex].step)
 		{
-			PressKeystrokes(encoders[encoderIndex].clockwiseKeystrokes, MAX_COMMANDS_PER_BUTTON);
+			//+ve so clockwise
+			RunEncoderCommands(encoderIndex, true);
 			encoders[encoderIndex].encoder->write(0);
 		}
-		else if (encoderVal > 0)
+		else if (encoderVal < -encoders[encoderIndex].step)
 		{
-			PressKeystrokes(encoders[encoderIndex].antiClockwiseKeystrokes, MAX_COMMANDS_PER_BUTTON);
+			//-ve so anti-clockwise
+			RunEncoderCommands(encoderIndex, false);
 			encoders[encoderIndex].encoder->write(0);
 		}
 
@@ -251,212 +379,133 @@ void CheckButtons()
 // Serial comms functions
 // ===========================================
 
-byte serialBuffer[SERIAL_BUFFER_LENGTH];
-bool ReadSerial()
-{
-	if (Serial.available() > 0)
-	{
-		Serial.readBytes(serialBuffer, SERIAL_BUFFER_LENGTH);
-		return true;
-	}
+constexpr byte QuerySettingsCommand = 0x01;
+constexpr byte ReadEepromCommand = 0x02;
+constexpr byte WriteEepromCommand = 0x03;
+constexpr byte ResetCommand = 0x04;
+constexpr byte SERIAL_START_BYTE = 0xfe;
 
-	return false;
-}
+void(*resetFunc) (void) = 0;
 
 //get commands from serial buffer
 void ProcessIncomingCommands()
 {
-	if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == ReadButtonCommand)
+	if (Serial.available() > 0)
 	{
-		SendButtonConfig(serialBuffer[2]);
-	}
-	if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == ReadEncoderCommand)
-	{
-		SendEncoderConfig(serialBuffer[2]);
-	}
-	else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == WriteButtonCommand)
-	{
-		ReceiveButtonConfig(serialBuffer[2]);
-	}
-	else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == WriteEncoderButtonCommand)
-	{
-		ReceiveEncoderButtonConfig(serialBuffer[2]);
-	}
-	else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == WriteEncoderClockwiseCommand)
-	{
-		ReceiveEncoderClockwiseConfig(serialBuffer[2]);
-	}
-	else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == WriteEncoderAntiClockwiseCommand)
-	{
-		ReceiveEncoderAntiClockwiseConfig(serialBuffer[2]);
-	}
-	else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == QuerySettingsCommand)
-	{
-		SendKeyboardSettings();
-	}
+		//read the command
+		char serialBuffer[2];
+		Serial.readBytes(serialBuffer, 2);
 
-	WipeSerialBuffer();
-}
-
-//send button config to the pc
-void SendButtonConfig(int buttonIndex)
-{
-	if (buttonIndex < NumButtons)
-	{
-		Serial.write((byte)0xEE);
-		Serial.write((byte)ReadButtonCommand);
-		Serial.write((byte)buttonIndex);
-		sendKeystrokes(buttons[buttonIndex].keystrokes);
+		if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == ReadEepromCommand)
+		{
+			//send the eeprom to the PC
+			ReadEEPROM();
+		}
+		else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == WriteEepromCommand)
+		{
+			//recieve the eeprom from the PC
+			WriteEEPROM();
+		}
+		else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == QuerySettingsCommand)
+		{
+			//send basic settings, also ised to detect if the keyboard is connected
+			SendKeyboardSettings();
+		}
+		else if (serialBuffer[0] == SERIAL_START_BYTE && serialBuffer[1] == ResetCommand)
+		{
+			//reset
+			resetFunc();
+		}
 	}
 }
 
-//read encoder button config from the serial buffer
-void ReceiveEncoderButtonConfig(int encoderIndex)
+//send config to the pc
+void ReadEEPROM()
 {
-	if (encoderIndex < NumEncoders)
-	{
-		byte serialIndex = 3;
-		DecodeKeystrokes(&serialIndex, encoders[encoderIndex].buttonKeystrokes);
+	FastCRC16 CRC16;
+	uint16_t crc;
 
-		SendSuccess(encoderIndex);
+	//echo command back
+	byte serialBuffer[2];
+	serialBuffer[0] = SERIAL_START_BYTE;
+	serialBuffer[1] = ReadEepromCommand;
+	Serial.write(serialBuffer, 2);;
 
-		SaveConfigToEEPROM();
+	crc = CRC16.kermit(serialBuffer, 2);
+
+	//write the rest of the eeprom
+	for (int i = EEPROM_DATA_START; i < EEPROM.length(); i++) {
+		serialBuffer[0] = EEPROM.read(i);
+		Serial.write(serialBuffer, 1);
+		crc = CRC16.kermit_upd(serialBuffer, 1);
 	}
+
+	//write the crc
+	Serial.write(((byte)((crc & 0xFF00) >> 8)));
+	Serial.write(((byte)(crc & 0xFF)));
 }
 
-void sendKeystrokes(keystroke keystrokes[])
+//get everything and write to eeprom
+void WriteEEPROM()
 {
-	for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
+	FastCRC16 CRC16;
+
+	int address = EEPROM_DATA_START;
+	char serialBuffer;
+
+	uint16_t crc;
+
+	//get first char and start crc
+	Serial.readBytes(&serialBuffer, 1);
+	crc = CRC16.ccitt((uint8_t*)&serialBuffer, 1);
+	do
 	{
-		Serial.write(keystrokes[cmdIndex].pressType);
-		Serial.write(keystrokes[cmdIndex].commandType);
-		Serial.write((byte)((keystrokes[cmdIndex].command & 0xFF00) >> 8));
-		Serial.write((byte)(keystrokes[cmdIndex].command & 0xFF));
-	}
+		EEPROM.write(address, serialBuffer);
+		address++;
+
+		crc = CRC16.ccitt_upd((uint8_t*)&serialBuffer, 1);
+	} while (Serial.readBytes(&serialBuffer, 1) > 0);
+
+	//echo command back
+	Serial.write((byte)0xEE);
+	Serial.write((byte)WriteEepromCommand);
+	SendInt16(crc);
 }
 
-//send encoder config command. doesn't use the serial buffer as the buffer
-//would have to be too big for the memory
-void SendEncoderConfig(byte encoderIndex)
+//send a crc back
+void SendInt16(uint16_t crc)
 {
-	if (encoderIndex < NumEncoders)
-	{
-		Serial.write((byte)0xEE);
-		Serial.write((byte)ReadEncoderCommand);
-		Serial.write((byte)encoderIndex);
-		sendKeystrokes(encoders[encoderIndex].buttonKeystrokes);
-		sendKeystrokes(encoders[encoderIndex].clockwiseKeystrokes);
-		sendKeystrokes(encoders[encoderIndex].antiClockwiseKeystrokes);
-	}
-}
+	byte serialBuffer[2];
+	serialBuffer[0] = ((byte)((crc & 0xFF00) >> 8));
+	serialBuffer[1] = ((byte)(crc & 0xFF));
 
-//read encoder clockwise config from the serial buffer
-void ReceiveEncoderClockwiseConfig(int encoderIndex)
-{
-	if (encoderIndex < NumEncoders)
-	{
-		byte serialIndex = 3;
-		DecodeKeystrokes(&serialIndex, encoders[encoderIndex].clockwiseKeystrokes);
-
-		SendSuccess(encoderIndex);
-
-		SaveConfigToEEPROM();
-	}
-}
-
-//read encoder clockwise config from the serial buffer
-void ReceiveEncoderAntiClockwiseConfig(int encoderIndex)
-{
-	if (encoderIndex < NumEncoders)
-	{
-		byte serialIndex = 3;
-		DecodeKeystrokes(&serialIndex, encoders[encoderIndex].antiClockwiseKeystrokes);
-
-		SendSuccess(encoderIndex);
-
-		SaveConfigToEEPROM();
-	}
-}
-
-//read button config from the serial buffer
-void ReceiveButtonConfig(int buttonIndex)
-{
-	if (buttonIndex < NumButtons)
-	{
-		byte serialIndex = 3;
-		DecodeKeystrokes(&serialIndex, buttons[buttonIndex].keystrokes);
-
-		SendSuccess(buttonIndex);
-
-		SaveConfigToEEPROM();
-	}
-}
-
-void DecodeKeystrokes(byte* serialIndex, keystroke* keystrokes)
-{
-	WipeKeystrokes(keystrokes);
-	for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-	{
-		//get command type then command from 2 bytes of serial data
-		keystrokes[cmdIndex].pressType = (PressType)serialBuffer[*serialIndex];
-		keystrokes[cmdIndex].commandType = serialBuffer[*serialIndex + 1];
-		keystrokes[cmdIndex].command = serialBuffer[*serialIndex + 2] << 8;
-		keystrokes[cmdIndex].command |= serialBuffer[*serialIndex + 3];
-		*serialIndex += 4;
-	}
-}
-void WipeKeystrokes(keystroke* keystrokes)
-{
-	for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-	{
-		keystrokes[cmdIndex].pressType = press;
-		keystrokes[cmdIndex].commandType = 0;
-		keystrokes[cmdIndex].command = 0;
-	}
-}
-
-//send a success command
-void SendSuccess(int index)
-{
-	WipeSerialBuffer();
-	serialBuffer[0] = 0xEE;
-	serialBuffer[1] = SERIAL_SUCCESS_BYTE;
-	serialBuffer[2] = index;
-
-	Serial.write(serialBuffer, 3);
+	Serial.write(serialBuffer, 2);
 }
 
 void SendKeyboardSettings()
 {
-	WipeSerialBuffer();
-	serialBuffer[0] = 0xEE;
+	FastCRC16 CRC16;
+	uint16_t crc;
+	uint16_t eepromLen = EEPROM.length();
+	byte serialBuffer[4];
+
+	serialBuffer[0] = SERIAL_START_BYTE;
 	serialBuffer[1] = QuerySettingsCommand;
-	serialBuffer[2] = NumButtons;
-	serialBuffer[3] = NumEncoders;
-	serialBuffer[4] = MAX_COMMANDS_PER_BUTTON;
-	for (int i = 0; i < version.length(); i++)
-	{
-		serialBuffer[i + 5] = version.charAt(i);
-	}
-	Serial.write(serialBuffer, 5 + version.length());
-}
+	serialBuffer[2] = ((byte)((eepromLen & 0xFF00) >> 8));
+	serialBuffer[3] = ((byte)(eepromLen & 0xFF));
 
-void WipeSerialBuffer()
-{
-	for (int i = 0; i < SERIAL_BUFFER_LENGTH; i++)
-	{
-		serialBuffer[i] = 0;
-	}
-}
+	Serial.write(serialBuffer, 4);
 
-void WipeKeyStrokeArray(keystroke* arr)
-{
-	for (int i = 0; i < MAX_COMMANDS_PER_BUTTON; i++)
+	crc = CRC16.kermit((uint8_t*)serialBuffer, 4);
+
+	for (unsigned int i = 0; i < version.length(); i++)
 	{
-		arr[i].command = 0;
-		arr[i].commandType = 0;
-		arr[i].pressType = pressAndRelease;
+		serialBuffer[0] = version.charAt(i);
+		Serial.write(serialBuffer, 1);
+		crc = CRC16.kermit_upd((uint8_t*)&serialBuffer, 1);
 	}
+
+	SendInt16(crc);
 }
 
 // ===========================================
@@ -470,109 +519,40 @@ void WipeEEPROM()
 	}
 }
 
-void SaveConfigToEEPROM()
-{
-	EEPROM.update(0x00, EEPROM_INTEGRITY_BYTE);
-	int address = EEPROM_DATA_START;
-	for (byte buttonIndex = 0; buttonIndex < NumButtons; buttonIndex++)
-	{
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			EEPROM.put(address, buttons[buttonIndex].keystrokes[cmdIndex]);
-			address += sizeof(keystroke);
-		}
-	}
-	for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
-	{
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			EEPROM.put(address, encoders[encoderIndex].buttonKeystrokes[cmdIndex]);
-			address += sizeof(keystroke);
-		}
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			EEPROM.put(address, encoders[encoderIndex].clockwiseKeystrokes[cmdIndex]);
-			address += sizeof(keystroke);
-		}
-		for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-		{
-			EEPROM.put(address, encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex]);
-			address += sizeof(keystroke);
-		}
-	}
-}
-
-void LoadConfigFromEEPROM()
-{
-	if (EEPROM.read(0x00) == EEPROM_INTEGRITY_BYTE)
-	{
-		int address = EEPROM_DATA_START;
-		for (byte buttonIndex = 0; buttonIndex < NumButtons; buttonIndex++)
-		{
-			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-			{
-				EEPROM.get(address, buttons[buttonIndex].keystrokes[cmdIndex]);
-				address += sizeof(keystroke);
-			}
-		}
-		for (byte encoderIndex = 0; encoderIndex < NumEncoders; encoderIndex++)
-		{
-			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-			{
-				EEPROM.get(address, encoders[encoderIndex].buttonKeystrokes[cmdIndex]);
-				address += sizeof(keystroke);
-			}
-			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-			{
-				EEPROM.get(address, encoders[encoderIndex].clockwiseKeystrokes[cmdIndex]);
-				address += sizeof(keystroke);
-			}
-			for (byte cmdIndex = 0; cmdIndex < MAX_COMMANDS_PER_BUTTON; cmdIndex++)
-			{
-				EEPROM.get(address, encoders[encoderIndex].antiClockwiseKeystrokes[cmdIndex]);
-				address += sizeof(keystroke);
-			}
-		}
-	}
-	else
-	{
-		WipeEEPROM();
-		SaveConfigToEEPROM();
-	}
-}
-
 // ===========================================
 // main arduino functions
 // ===========================================
 void setup()
 {
+#ifdef TEENSY_BUILD
+#else
 	Consumer.begin();
 	Keyboard.begin();
 	System.begin();
+#endif
 
-	Serial.begin(SERIAL_BAUD_RATE, SERIAL_8N1);
+	Serial.begin(SERIAL_BAUD_RATE);
 	Serial.setTimeout(10);
 
-	InitButtons();
-	LoadConfigFromEEPROM();
+	Initialise();
 
 	Serial.println();
 	Serial.print("Version ");
 	Serial.println(version);
 
-	Serial.print("MAX_COMMANDS_PER_BUTTON ");
-	Serial.println(MAX_COMMANDS_PER_BUTTON);
+	FastCRC16 CRC16a;
 
-	Serial.print("SERIAL_BUFFER_LENGTH ");
-	Serial.println(SERIAL_BUFFER_LENGTH);
+	//initialise with 0
+	uint8_t c[] = { 254 };
+	uint16_t crc = CRC16a.kermit(&c[0], 1);
+	//c[0] = 254;
+	//crc = CRC16a.kermit_upd(&c[0], 1);
+	Serial.println(crc);
 }
 
 void loop()
 {
 	CheckButtons();
 
-	if (ReadSerial())
-	{
-		ProcessIncomingCommands();
-	}
+	ProcessIncomingCommands();
 }

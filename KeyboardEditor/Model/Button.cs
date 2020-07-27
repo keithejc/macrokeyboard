@@ -6,16 +6,19 @@ namespace KeyboardEditor.Model
 {
     public class Button : INotifyPropertyChanged
     {
-        private IList<Command> keyStrokes;
+        private IList<Command> commands;
         private int buttonIndex;
+        private byte pin;
 
-        public IList<Command> KeyStrokes { get => keyStrokes; set { keyStrokes = value; OnPropertyChanged("KeyStrokes"); } }
+        public IList<Command> Commands { get => commands; set { commands = value; OnPropertyChanged("KeyStrokes"); } }
         public int ButtonIndex { get => buttonIndex; set { buttonIndex = value; OnPropertyChanged("ButtonIndex"); } }
+        public byte Pin { get => pin; set { pin = value; OnPropertyChanged("Pin"); } }
+
         public string Name => this.ToString();
 
         public Button()
         {
-            KeyStrokes = new List<Command>();
+            Commands = new List<Command>();
         }
 
         public string CommandString
@@ -23,7 +26,7 @@ namespace KeyboardEditor.Model
             get
             {
                 var cmdString = "";
-                foreach (var item in KeyStrokes)
+                foreach (var item in Commands)
                 {
                     cmdString += item.ToString() + " ";
                 }

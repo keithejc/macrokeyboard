@@ -9,9 +9,10 @@ namespace KeyboardEditor.Model
 {
     public class KeyboardSettings
     {
-        public byte MaxNumKeystrokesPerButton { get; set; }
+        public int EEPROMLength { get; set; }
         public byte NumButtons { get; set; }
         public byte NumEncoders { get; set; }
+        public byte NumLeds { get; set; }
         public string Version { get; set; }
     }
 }
