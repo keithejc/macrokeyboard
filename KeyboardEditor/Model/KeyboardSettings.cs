@@ -10,8 +10,6 @@ namespace KeyboardEditor.Model
     public class KeyboardSettings
     {
         public int EEPROMLength { get; set; }
-        public byte NumButtons { get; set; }
-        public byte NumEncoders { get; set; }
         public byte NumLeds { get; set; }
         public string Version { get; set; }
     }

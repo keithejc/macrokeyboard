@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace KeyboardEditor.Model
 {
-    internal enum KeyboardKeycode
+    public enum KeyboardKeycode : ushort
     {
         KEY_CTRL = 0x01 | 0xE000,
         KEY_SHIFT = 0x02 | 0xE000,

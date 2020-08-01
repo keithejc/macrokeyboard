@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:KeyboardEditor"
         mc:Ignorable="d"
         Title="MK Keyboard Editor" Height="450" Width="800">
-    <Grid Margin="0,0,0,20">
+    <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="397*" />
             <ColumnDefinition Width="403*" />
@@ -22,7 +22,7 @@
         <Label Content="{Binding KeyboardType}" HorizontalAlignment="Left" Margin="53,10,0,0" VerticalAlignment="Top" Width="Auto" Grid.Column="1" />
         <Label Content="Keyboard Version:" HorizontalAlignment="Left" Margin="336,36,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2" />
         <Label Content="{Binding KeyboardSettings.Version}" HorizontalAlignment="Left" Margin="53,36,0,0" VerticalAlignment="Top" Width="Auto" Grid.Column="1" />
-        <ListView Name ="Buttons" Margin="0,73,0,0" ItemsSource="{Binding Buttons}" Grid.RowSpan="2" Grid.ColumnSpan="2">
+        <ListView Name ="Buttons" Margin="0,73,0,0" ItemsSource="{Binding Buttons}" Grid.RowSpan="1" Grid.ColumnSpan="2">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Background="LightPink" Orientation="Horizontal">
@@ -43,5 +43,7 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <Button Content="Setup Keyboard" Grid.Column="1" HorizontalAlignment="Left" Margin="294,12,0,0" VerticalAlignment="Top" Click="Button_Click" />
+        <Button Content="Write" Grid.Column="1" HorizontalAlignment="Left" Margin="294,47,0,0" VerticalAlignment="Top" Command="{Binding SubmitCommand}" />
     </Grid>
 </Window>

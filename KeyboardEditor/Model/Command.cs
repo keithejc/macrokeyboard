@@ -32,7 +32,7 @@ namespace KeyboardEditor.Model
     public class KeyboardCommand : Command
     {
         public PressType PressType;
-        public UInt16 KeyCode;
+        public KeyboardKeycode KeyCode;
 
         public string Name => this.ToString();
 

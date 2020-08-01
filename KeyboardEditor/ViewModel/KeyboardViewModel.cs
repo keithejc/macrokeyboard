@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
-
 using KeyboardEditor.Model;
 
 namespace KeyboardEditor.ViewModel
 {
-    public class KeyboardViewModel
+    public class KeyboardViewModel : INotifyPropertyChanged
     {
         private readonly Keyboard keyboard;
 
@@ -41,36 +41,69 @@ namespace KeyboardEditor.ViewModel
         }
 
         public string KeyboardType { get { return ""; } }// KeyboardSettings.NumButtons + " buttons, " + KeyboardSettings.NumEncoders + " Encoders "; } }
-        public string Status { get; set; }
 
-        private System.Windows.Input.ICommand mUpdater;
+        private string status;
+        public string Status { get { return status; } set { status = value; OnPropertyChanged("Status"); } }
 
-        public System.Windows.Input.ICommand UpdateCommand
+        private System.Windows.Input.ICommand _SubmitCommand;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public System.Windows.Input.ICommand SubmitCommand
         {
             get
             {
-                if (mUpdater == null)
-                    mUpdater = new Updater();
-                return mUpdater;
-            }
-            set
-            {
-                mUpdater = value;
+                if (_SubmitCommand == null)
+                {
+                    _SubmitCommand = new RelayCommand(param => this.Submit(),
+                        null);
+                }
+                return _SubmitCommand;
             }
         }
 
-        private class Updater : System.Windows.Input.ICommand
+        private void Submit()
         {
-            public bool CanExecute(object parameter)
+            Status = keyboard.WriteKeyboard();
+        }
+
+        public class RelayCommand : System.Windows.Input.ICommand
+        {
+            public RelayCommand(Action<object> execute) : this(execute, null)
             {
-                return true;
             }
 
-            public event EventHandler CanExecuteChanged;
+            public RelayCommand(Action<object> execute, Predicate<object> canExecute)
+            {
+                if (execute == null)
+                    throw new ArgumentNullException("execute");
+                _execute = execute;
+                _canExecute = canExecute;
+            }
+
+            public bool CanExecute(object parameter)
+            {
+                return _canExecute == null ? true : _canExecute(parameter);
+            }
+
+            public event EventHandler CanExecuteChanged
+            {
+                add { System.Windows.Input.CommandManager.RequerySuggested += value; }
+                remove { System.Windows.Input.CommandManager.RequerySuggested -= value; }
+            }
 
             public void Execute(object parameter)
             {
+                _execute(parameter);
             }
+
+            private readonly Action<object> _execute;
+            private readonly Predicate<object> _canExecute;
         }
     }
 }

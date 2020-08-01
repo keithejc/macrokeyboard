@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using KeyboardEditor.ViewModel;
 
 namespace KeyboardEditor
 {
@@ -23,6 +24,15 @@ namespace KeyboardEditor
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            var keyboardSettingsWindow = new View.KeyboardSettings();
+            var vm = new KeyboardViewModel();
+            keyboardSettingsWindow.DataContext = vm;
+
+            keyboardSettingsWindow.Show();
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Security.RightsManagement;
 using System.Text;
 
 namespace KeyboardEditor.Model
@@ -11,7 +12,7 @@ namespace KeyboardEditor.Model
         private KeyboardSettings keyboardSettings;
         private IList<Button> buttons;
         private IList<EncoderControl> encoders;
-        private int numLeds;
+        private byte numLeds;
 
         public KeyboardSettings KeyboardSettings
         {
@@ -43,7 +44,7 @@ namespace KeyboardEditor.Model
             }
         }
 
-        public int NumLeds { get => numLeds; set { numLeds = value; OnPropertyChanged("NumLeds"); } }
+        public byte NumLeds { get => numLeds; set { numLeds = value; OnPropertyChanged("NumLeds"); } }
 
         private readonly Comms Comms;
 
@@ -51,6 +52,10 @@ namespace KeyboardEditor.Model
         {
             Comms = new Comms();
             Buttons = new List<Button>();
+
+            Buttons.Add(new Button() { ButtonIndex = 0, Pin = 10 });
+            Buttons[0].Commands.Add(new KeyboardCommand() { CommandType = CommandType.Keyboard, PressType = PressType.PressAndRelease, KeyCode = KeyboardKeycode.KEY_A });
+
             Encoders = new List<EncoderControl>();
         }
 
@@ -80,18 +85,87 @@ namespace KeyboardEditor.Model
             return "Ready...";
         }
 
+        private void SetupDefaults()
+        {
+            NumLeds = 10;
+            buttons.Clear();
+
+            var b = new Button { ButtonIndex = 0, Pin = 23 };
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_PREV_TRACK, PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 1, Pin = 22 };
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_NEXT_TRACK, PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 2, Pin = 21 };
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_V, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_A, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_R, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_A, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_N, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_U, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_S, PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 3, Pin = 20 };
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_CTRL, PressType = PressType.Press });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_SHIFT, PressType = PressType.Press });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_ALT, PressType = PressType.Press });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_H, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_CTRL, PressType = PressType.Release });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_SHIFT, PressType = PressType.Release });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_ALT, PressType = PressType.Release });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 4, Pin = 19 };
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_CTRL, PressType = PressType.Press });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_SHIFT, PressType = PressType.Press });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_ALT, PressType = PressType.Press });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_S, PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_CTRL, PressType = PressType.Release });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_SHIFT, PressType = PressType.Release });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_ALT, PressType = PressType.Release });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 5, Pin = 18 };
+            //            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode., PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 6, Pin = 17 };
+            //          b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode., PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 7, Pin = 16 };
+            //        b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode., PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 8, Pin = 15 };
+            //      b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode., PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            b = new Button { ButtonIndex = 9, Pin = 14 };
+            //    b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode., PressType = PressType.PressAndRelease });
+            buttons.Add(b);
+
+            var e = new EncoderControl { StepSize = 1, EncoderIndex = 0 };
+            e.Button = new Button { Pin = 5 };
+            e.Button.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_PLAY_PAUSE, PressType = PressType.PressAndRelease });
+
+            e.ClockwiseStep = new Button { Pin = 7 };
+            e.ClockwiseStep.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_VOLUME_DEC, PressType = PressType.PressAndRelease });
+
+            e.AntiClockwiseStep = new Button { Pin = 6 };
+            e.AntiClockwiseStep.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_VOLUME_INC, PressType = PressType.PressAndRelease });
+            encoders.Add(e);
+        }
+
         public string WriteKeyboard()
         {
+            SetupDefaults();
             var eeprom = EncodeEeprom();
 
-            if (Comms.WriteEeprom(eeprom))
-            {
-                return "Written OK";
-            }
-            else
-            {
-                return "Failed to write";
-            }
+            return Comms.WriteEeprom(eeprom);
         }
 
         private const ushort EEPROM_INITIALISED = 0x1DEA;
@@ -99,6 +173,11 @@ namespace KeyboardEditor.Model
         private bool DecodeEeprom(byte[] eeprom)
         {
             var success = false;
+
+            if (eeprom.Length == 0)
+            {
+                return true;
+            }
 
             //is this a valid eeprom? check first 2 bytes
             if (eeprom[0] == (EEPROM_INITIALISED & 0xFF00) >> 8 &&
@@ -151,8 +230,9 @@ namespace KeyboardEditor.Model
             }
             else
             {
-                keyboardSettings.NumButtons = 0;
-                keyboardSettings.NumEncoders = 0;
+                success = true;
+                buttons.Clear();
+                encoders.Clear();
                 keyboardSettings.NumLeds = 0;
             }
 
@@ -199,7 +279,7 @@ namespace KeyboardEditor.Model
                         {
                             CommandType = commandType,
                             PressType = (PressType)(eeprom[address + 1]),
-                            KeyCode = (ushort)(eeprom[address + 2] * 256 + eeprom[address + 3]),
+                            KeyCode = (KeyboardKeycode)(eeprom[address + 2] * 256 + eeprom[address + 3]),
                         };
                         button.Commands.Add(kc);
                         address += 3;
@@ -235,77 +315,78 @@ namespace KeyboardEditor.Model
 
         private byte[] EncodeEeprom()
         {
-            var eeprom = new byte[keyboardSettings.EEPROMLength];
-            eeprom[0] = EEPROM_INITIALISED & 0xFF00 >> 8;
-            eeprom[1] = EEPROM_INITIALISED & 0xFF;
+            var eeprom = new byte[2048];//keyboardSettings.EEPROMLength];
+            eeprom[0] = EEPROM_INITIALISED & 0xFF;
+            eeprom[1] = (EEPROM_INITIALISED & 0xFF00) >> 8;
 
-            //lookuptable address
-            var lookupAddress = 8 + buttons.Count + 1 + encoders.Count * 3;
-            eeprom[2] = (byte)(lookupAddress & 0xFF00 >> 8);
-            eeprom[3] = (byte)(lookupAddress & 0xFF);
+            //settings table  - after button pins and encoder pins
+            var settingsTableAddress = 9 + buttons.Count + encoders.Count * 3;
+            eeprom[2] = (byte)(settingsTableAddress & 0xFF);
+            eeprom[3] = (byte)((settingsTableAddress & 0xFF00) >> 8);
 
-            //settings table address
-            var settingsAddress = lookupAddress + 2 * buttons.Count + 6 * encoders.Count + 1;
-            eeprom[4] = (byte)(settingsAddress & 0xFF00 >> 8);
-            eeprom[5] = (byte)(settingsAddress & 0xFF);
+            //lookuptable address - after settings
+            var lookupTableAddress = settingsTableAddress + encoders.Count;
+            eeprom[4] = (byte)(lookupTableAddress & 0xFF);
+            eeprom[5] = (byte)((lookupTableAddress & 0xFF00) >> 8);
 
+            //number of leds
             eeprom[6] = (byte)NumLeds;
+            //number of buttons
             eeprom[7] = (byte)buttons.Count;
+            //number of encoders
+            eeprom[8] = (byte)encoders.Count;
+            //button pins
             for (int i = 0; i < buttons.Count; i++)
             {
-                eeprom[8 + i] = buttons[i].Pin;
+                eeprom[9 + i] = buttons[i].Pin;
             }
-            eeprom[8 + buttons.Count] = (byte)encoders.Count;
+            //encoder pins
             for (int i = 0; i < encoders.Count; i++)
             {
-                eeprom[8 + buttons.Count + 1 + i * 3] = encoders[i].Button.Pin;
-                eeprom[8 + buttons.Count + 2 + i * 3] = encoders[i].ClockwiseStep.Pin;
-                eeprom[8 + buttons.Count + 3 + i * 3] = encoders[i].AntiClockwiseStep.Pin;
+                eeprom[9 + buttons.Count + i * 3] = encoders[i].Button.Pin;
+                eeprom[9 + buttons.Count + i * 3 + 1] = encoders[i].ClockwiseStep.Pin;
+                eeprom[9 + buttons.Count + i * 3 + 2] = encoders[i].AntiClockwiseStep.Pin;
             }
 
             //settings
             for (int i = 0; i < encoders.Count; i++)
             {
-                eeprom[settingsAddress + i] = encoders[i].StepSize;
+                eeprom[settingsTableAddress + i] = encoders[i].StepSize;
             }
 
             //write lookup table as the command arrays are written
             //first array is after the lookup table
-            var buttonArrayAddress = lookupAddress + buttons.Count * 2 + encoders.Count * 6;
+            var lookuptableSize = 2 * buttons.Count + 6 * encoders.Count;
+            var commandArrayAddress = lookupTableAddress + lookuptableSize;
 
             //button command arrays
             for (int i = 0; i < buttons.Count; i++)
             {
-                int afterButtonArrayAddress = WriteButtonCommandArray(buttons[i], eeprom, buttonArrayAddress);
                 //write lookup table
-                eeprom[lookupAddress + i * 2] = (byte)(buttonArrayAddress & 0xFF00 >> 8);
-                eeprom[lookupAddress + i * 2 + 1] = (byte)(buttonArrayAddress & 0xFF);
-                //point to eeprom location for next array
-                buttonArrayAddress = afterButtonArrayAddress;
+                eeprom[lookupTableAddress + i * 2] = (byte)(commandArrayAddress & 0xFF);
+                eeprom[lookupTableAddress + i * 2 + 1] = (byte)((commandArrayAddress & 0xFF00) >> 8);
+                commandArrayAddress = WriteButtonCommandArray(buttons[i], eeprom, commandArrayAddress);
             }
 
             //encoder command arrays
             for (int i = 0; i < encoders.Count; i++)
             {
-                int afterButtonArrayAddress = WriteButtonCommandArray(encoders[i].Button, eeprom, buttonArrayAddress);
-                eeprom[lookupAddress + buttons.Count * 2 + i * 6] = (byte)(buttonArrayAddress & 0xFF00 >> 8);
-                eeprom[lookupAddress + i * 2 + 1] = (byte)(buttonArrayAddress & 0xFF);
-                buttonArrayAddress = afterButtonArrayAddress;
+                eeprom[lookupTableAddress + buttons.Count * 2 + i * 6] = (byte)(commandArrayAddress & 0xFF);
+                eeprom[lookupTableAddress + buttons.Count * 2 + i * 6 + 1] = (byte)((commandArrayAddress & 0xFF00) >> 8);
+                commandArrayAddress = WriteButtonCommandArray(encoders[i].Button, eeprom, commandArrayAddress);
 
-                afterButtonArrayAddress = WriteButtonCommandArray(encoders[i].ClockwiseStep, eeprom, buttonArrayAddress);
-                eeprom[lookupAddress + buttons.Count * 2 + i * 6 + 2] = (byte)(buttonArrayAddress & 0xFF00 >> 8);
-                eeprom[lookupAddress + i * 2 + 1] = (byte)(buttonArrayAddress & 0xFF);
-                buttonArrayAddress = afterButtonArrayAddress;
+                eeprom[lookupTableAddress + buttons.Count * 2 + i * 6 + 2] = (byte)(commandArrayAddress & 0xFF);
+                eeprom[lookupTableAddress + buttons.Count * 2 + i * 6 + 3] = (byte)((commandArrayAddress & 0xFF00) >> 8);
+                commandArrayAddress = WriteButtonCommandArray(encoders[i].ClockwiseStep, eeprom, commandArrayAddress);
 
-                afterButtonArrayAddress = WriteButtonCommandArray(encoders[i].AntiClockwiseStep, eeprom, buttonArrayAddress);
-                eeprom[lookupAddress + buttons.Count * 2 + i * 6 + 4] = (byte)(buttonArrayAddress & 0xFF00 >> 8);
-                eeprom[lookupAddress + i * 2 + 1] = (byte)(buttonArrayAddress & 0xFF);
-                buttonArrayAddress = afterButtonArrayAddress;
+                eeprom[lookupTableAddress + buttons.Count * 2 + i * 6 + 4] = (byte)(commandArrayAddress & 0xFF);
+                eeprom[lookupTableAddress + buttons.Count * 2 + i * 6 + 5] = (byte)((commandArrayAddress & 0xFF00) >> 8);
+                commandArrayAddress = WriteButtonCommandArray(encoders[i].AntiClockwiseStep, eeprom, commandArrayAddress);
             }
 
             // eeprom Size Used = buttonArrayAddress;
-            var resizedEeprom = new byte[buttonArrayAddress];
-            Array.Copy(eeprom, 0, resizedEeprom, 0, buttonArrayAddress);
+            var resizedEeprom = new byte[commandArrayAddress];
+            Array.Copy(eeprom, 0, resizedEeprom, 0, commandArrayAddress);
             return resizedEeprom;
         }
 
@@ -314,7 +395,7 @@ namespace KeyboardEditor.Model
             var address = buttonArrayAddress;
             foreach (var command in button.Commands)
             {
-                eeprom[address] = (byte)CommandType.Keyboard;
+                eeprom[address] = (byte)command.CommandType;
                 address++;
 
                 switch (command.CommandType)
@@ -323,13 +404,15 @@ namespace KeyboardEditor.Model
                         break;
 
                     case CommandType.Keyboard:
-                        eeprom.SetValue(((KeyboardCommand)command).PressType, address);
-                        eeprom.SetValue(((KeyboardCommand)command).KeyCode, address + 1);
+                        eeprom[address] = (byte)((KeyboardCommand)command).PressType;
+                        eeprom[address + 1] = (byte)(((ushort)((KeyboardCommand)command).KeyCode & 0xFF));
+                        eeprom[address + 2] = (byte)(((ushort)((KeyboardCommand)command).KeyCode & 0xFF00) >> 8);
                         address += 3;
                         break;
 
                     case CommandType.Delay:
-                        eeprom.SetValue(((DelayCommand)command).DelayMs, address);
+                        eeprom[address] = (byte)(((ushort)((DelayCommand)command).DelayMs & 0xFF));
+                        eeprom[address + 1] = (byte)(((ushort)((DelayCommand)command).DelayMs & 0xFF00) >> 8);
                         address += 2;
                         break;
 
