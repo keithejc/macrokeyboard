@@ -1,24 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.RightsManagement;
 using System.Text;
 
 namespace KeyboardEditor.Model
 {
-    internal class Keyboard : INotifyPropertyChanged
+    public class Keyboard : INotifyPropertyChanged
     {
         private KeyboardSettings keyboardSettings;
         private IList<Button> buttons;
         private IList<EncoderControl> encoders;
         private byte numLeds;
+        private int eepromSpaceLeft;
 
         public KeyboardSettings KeyboardSettings
         {
-            get { return keyboardSettings; }
+            get => keyboardSettings;
             set
             {
+                EepromSpaceLeft = CalculateSpaceLeft();
                 keyboardSettings = value;
                 OnPropertyChanged("KeyboardSettings");
             }
@@ -26,9 +29,10 @@ namespace KeyboardEditor.Model
 
         public IList<Button> Buttons
         {
-            get { return buttons; }
+            get => buttons;
             set
             {
+                EepromSpaceLeft = CalculateSpaceLeft();
                 buttons = value;
                 OnPropertyChanged("Buttons");
             }
@@ -36,15 +40,35 @@ namespace KeyboardEditor.Model
 
         public IList<EncoderControl> Encoders
         {
-            get { return encoders; }
+            get => encoders;
             set
             {
+                EepromSpaceLeft = CalculateSpaceLeft();
                 encoders = value;
                 OnPropertyChanged("Encoders");
             }
         }
 
-        public byte NumLeds { get => numLeds; set { numLeds = value; OnPropertyChanged("NumLeds"); } }
+        public byte NumLeds
+        {
+            get => numLeds;
+            set
+            {
+                numLeds = value;
+                OnPropertyChanged("NumLeds");
+                EepromSpaceLeft = CalculateSpaceLeft();
+            }
+        }
+
+        public int EepromSpaceLeft
+        {
+            get => eepromSpaceLeft;
+            set
+            {
+                eepromSpaceLeft = value;
+                OnPropertyChanged("EepromSpaceLeft");
+            }
+        }
 
         private readonly Comms Comms;
 
@@ -57,6 +81,16 @@ namespace KeyboardEditor.Model
             Buttons[0].Commands.Add(new KeyboardCommand() { CommandType = CommandType.Keyboard, PressType = PressType.PressAndRelease, KeyCode = KeyboardKeycode.KEY_A });
 
             Encoders = new List<EncoderControl>();
+        }
+
+        private int CalculateSpaceLeft()
+        {
+            if (keyboardSettings == null)
+            {
+                return 0;
+            }
+            var e = EncodeEeprom();
+            return keyboardSettings.EEPROMLength - e.Length;
         }
 
         public string ReadKeyboard()
@@ -82,6 +116,7 @@ namespace KeyboardEditor.Model
                 return "Can't find keyboard";
             }
 
+            EepromSpaceLeft = CalculateSpaceLeft();
             return "Ready...";
         }
 
@@ -89,9 +124,26 @@ namespace KeyboardEditor.Model
         {
             NumLeds = 10;
             buttons.Clear();
+            encoders.Clear();
 
             var b = new Button { ButtonIndex = 0, Pin = 23 };
+
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_PREV_TRACK, PressType = PressType.PressAndRelease });
+
+            var lc = new LedCommand { LedIndex = 0 };
+            lc.LedColour[0] = 100;
+            lc.LedColour[1] = 20;
+            lc.LedColour[2] = 20;
+            b.Commands.Add(lc);
+
+            b.Commands.Add(new DelayCommand { DelayMs = 500 });
+
+            var lc2 = new LedCommand { LedIndex = 0 };
+            lc2.LedColour[0] = 0;
+            lc2.LedColour[1] = 0;
+            lc2.LedColour[2] = 0;
+            b.Commands.Add(lc2);
+
             buttons.Add(b);
 
             b = new Button { ButtonIndex = 1, Pin = 22 };
@@ -116,6 +168,16 @@ namespace KeyboardEditor.Model
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_CTRL, PressType = PressType.Release });
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_SHIFT, PressType = PressType.Release });
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_ALT, PressType = PressType.Release });
+            lc = new LedCommand { LedIndex = 3 };
+            lc.LedColour[0] = 20;
+            lc.LedColour[1] = 20;
+            lc.LedColour[2] = 20;
+            b.Commands.Add(lc);
+            lc = new LedCommand { LedIndex = 4 };
+            lc.LedColour[0] = 0;
+            lc.LedColour[1] = 0;
+            lc.LedColour[2] = 0;
+            b.Commands.Add(lc);
             buttons.Add(b);
 
             b = new Button { ButtonIndex = 4, Pin = 19 };
@@ -126,6 +188,16 @@ namespace KeyboardEditor.Model
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_CTRL, PressType = PressType.Release });
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_SHIFT, PressType = PressType.Release });
             b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_LEFT_ALT, PressType = PressType.Release });
+            lc = new LedCommand { LedIndex = 4 };
+            lc.LedColour[0] = 20;
+            lc.LedColour[1] = 20;
+            lc.LedColour[2] = 20;
+            b.Commands.Add(lc);
+            lc = new LedCommand { LedIndex = 3 };
+            lc.LedColour[0] = 0;
+            lc.LedColour[1] = 0;
+            lc.LedColour[2] = 0;
+            b.Commands.Add(lc);
             buttons.Add(b);
 
             b = new Button { ButtonIndex = 5, Pin = 18 };
@@ -146,9 +218,10 @@ namespace KeyboardEditor.Model
 
             b = new Button { ButtonIndex = 9, Pin = 14 };
             //    b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode., PressType = PressType.PressAndRelease });
+            b.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_PLAY_PAUSE, PressType = PressType.PressAndRelease });
             buttons.Add(b);
 
-            var e = new EncoderControl { StepSize = 1, EncoderIndex = 0 };
+            var e = new EncoderControl { StepSize = 2, EncoderIndex = 0 };
             e.Button = new Button { Pin = 5 };
             e.Button.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_PLAY_PAUSE, PressType = PressType.PressAndRelease });
 
@@ -158,6 +231,17 @@ namespace KeyboardEditor.Model
             e.AntiClockwiseStep = new Button { Pin = 6 };
             e.AntiClockwiseStep.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_VOLUME_INC, PressType = PressType.PressAndRelease });
             encoders.Add(e);
+
+            var e2 = new EncoderControl { StepSize = 2, EncoderIndex = 1 };
+            e2.Button = new Button { Pin = 8 };
+            e2.Button.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_PLAY_PAUSE, PressType = PressType.PressAndRelease });
+
+            e2.ClockwiseStep = new Button { Pin = 10 };
+            e2.ClockwiseStep.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_VOLUME_DEC, PressType = PressType.PressAndRelease });
+
+            e2.AntiClockwiseStep = new Button { Pin = 9 };
+            e2.AntiClockwiseStep.Commands.Add(new KeyboardCommand { CommandType = CommandType.Keyboard, KeyCode = KeyboardKeycode.KEY_MEDIA_VOLUME_INC, PressType = PressType.PressAndRelease });
+            encoders.Add(e2);
         }
 
         public string WriteKeyboard()
@@ -179,53 +263,80 @@ namespace KeyboardEditor.Model
                 return true;
             }
 
+            Debug.WriteLine("Decode EEPROM");
+
             //is this a valid eeprom? check first 2 bytes
-            if (eeprom[0] == (EEPROM_INITIALISED & 0xFF00) >> 8 &&
-                eeprom[1] == (EEPROM_INITIALISED & 0xFF))
+            if (eeprom[0] == (EEPROM_INITIALISED & 0xFF) &&
+                eeprom[1] == (EEPROM_INITIALISED & 0xFF00) >> 8)
+
             {
-                var lookupTableAddress = eeprom[2] * 256 + eeprom[3];
-                var settingsTableAddress = eeprom[4] * 256 + eeprom[5];
-
-                var numLeds = eeprom[6];
-                var numButtons = eeprom[7];
-                buttons.Clear();
-                for (int i = 0; i < numButtons; i++)
+                try
                 {
-                    buttons.Add(new Button() { ButtonIndex = i, Pin = eeprom[8 + i] });
-                }
+                    var settingsTableAddress = eeprom[2] + eeprom[3] * 256;
+                    var lookupTableAddress = eeprom[4] + eeprom[5] * 256;
 
-                var numEncoders = eeprom[8 + numButtons];
-                encoders.Clear();
-                for (int i = 0; i < numEncoders; i++)
-                {
-                    var e = new EncoderControl()
+                    Debug.WriteLine("lookupTableAddress " + lookupTableAddress);
+                    Debug.WriteLine("settingsTableAddress " + settingsTableAddress);
+
+                    var numLeds = eeprom[6];
+                    Debug.WriteLine("numLeds " + numLeds);
+                    var numButtons = eeprom[7];
+                    Debug.WriteLine("numButtons " + numButtons);
+                    var numEncoders = eeprom[8];
+                    Debug.WriteLine("numEncoders " + numEncoders);
+                    buttons.Clear();
+                    for (int buttonIndex = 0; buttonIndex < numButtons; buttonIndex++)
                     {
-                        EncoderIndex = i
-                    };
-                    e.Button = new Button() { Pin = eeprom[9 + (i * 3)] };
-                    e.Button = new Button() { Pin = eeprom[9 + (i * 3) + 1] };
-                    e.Button = new Button() { Pin = eeprom[9 + (i * 3) + 2] };
-                    encoders.Add(e);
-                }
+                        buttons.Add(new Button() { ButtonIndex = buttonIndex, Pin = eeprom[9 + buttonIndex] });
+                        Debug.WriteLine("Button " + buttonIndex + "  Pin " + eeprom[9 + buttonIndex]);
+                    }
 
-                //settings table
-                for (int i = 0; i < numEncoders; i++)
-                {
-                    encoders[i].StepSize = eeprom[settingsTableAddress + i];
-                }
+                    encoders.Clear();
+                    for (int encoderIndex = 0; encoderIndex < numEncoders; encoderIndex++)
+                    {
+                        var e = new EncoderControl()
+                        {
+                            EncoderIndex = encoderIndex
+                        };
+                        e.Button = new Button() { Pin = eeprom[9 + numButtons + (encoderIndex * 3)] };
+                        e.ClockwiseStep = new Button() { Pin = eeprom[9 + numButtons + (encoderIndex * 3) + 1] };
+                        e.AntiClockwiseStep = new Button() { Pin = eeprom[9 + numButtons + (encoderIndex * 3) + 2] };
+                        encoders.Add(e);
 
-                //button command arrays referenced in lookup table
-                for (int buttonIndex = 0; buttonIndex < buttons.Count; buttonIndex++)
-                {
-                    var lookupAddress = lookupTableAddress + 2 * buttonIndex;
-                    var commandsAddress = eeprom[lookupAddress] * 256 + eeprom[lookupAddress + 1];
-                    ReadButtonCommands(buttons[buttonIndex], eeprom, commandsAddress);
+                        Debug.WriteLine("Encoder " + encoderIndex + " Button Pin " + e.Button.Pin);
+                        Debug.WriteLine("Encoder " + encoderIndex + " Clockwise Pin " + e.ClockwiseStep.Pin);
+                        Debug.WriteLine("Encoder " + encoderIndex + " Anti Clockwise Pin " + e.AntiClockwiseStep.Pin);
+                    }
+
+                    //settings table
+                    Debug.WriteLine("Settings");
+                    for (int encoderIndex = 0; encoderIndex < numEncoders; encoderIndex++)
+                    {
+                        encoders[encoderIndex].StepSize = eeprom[settingsTableAddress + encoderIndex];
+                        Debug.WriteLine("Encoder " + encoderIndex + " StepSize " + encoders[encoderIndex].StepSize);
+                    }
+
+                    //button command arrays referenced in lookup table
+                    Debug.WriteLine("Command Arrays");
+                    for (int buttonIndex = 0; buttonIndex < buttons.Count; buttonIndex++)
+                    {
+                        var lookupAddress = lookupTableAddress + 2 * buttonIndex;
+                        var commandsAddress = eeprom[lookupAddress] + eeprom[lookupAddress + 1] * 256;
+                        Debug.WriteLine("Button " + buttonIndex + " commands at address " + commandsAddress);
+                        ReadCommandsArray(buttons[buttonIndex], eeprom, commandsAddress);
+                    }
+                    //encoder command arrays referenced next in lookup table
+                    for (int encoderIndex = 0; encoderIndex < encoders.Count; encoderIndex++)
+                    {
+                        var lookupAddress = lookupTableAddress + (2 * numButtons) + (6 * encoderIndex);
+                        ReadEncoderCommands(encoders[encoderIndex], eeprom, lookupAddress);
+                    }
+
+                    success = true;
                 }
-                //encoder command arrays referenced next in lookup table
-                for (int encoderIndex = 0; encoderIndex < buttons.Count; encoderIndex++)
+                catch (Exception)
                 {
-                    var lookupAddress = lookupTableAddress + (2 * numButtons) + (6 * encoderIndex);
-                    ReadEncoderCommands(encoders[encoderIndex], eeprom, lookupAddress);
+                    return false;
                 }
             }
             else
@@ -247,12 +358,15 @@ namespace KeyboardEditor.Model
         /// <param name="lookupAddress"></param>
         private void ReadEncoderCommands(EncoderControl encoderControl, byte[] eeprom, int lookupAddress)
         {
-            var buttonCommandsAddress = eeprom[lookupAddress] * 256 + eeprom[lookupAddress + 1];
-            ReadButtonCommands(encoderControl.Button, eeprom, buttonCommandsAddress);
-            var clockwiseCommandsAddress = eeprom[lookupAddress + 2] * 256 + eeprom[lookupAddress + 3];
-            ReadButtonCommands(encoderControl.ClockwiseStep, eeprom, clockwiseCommandsAddress);
-            var antiClockwiseCommandsAddress = eeprom[lookupAddress + 4] * 256 + eeprom[lookupAddress + 5];
-            ReadButtonCommands(encoderControl.ClockwiseStep, eeprom, antiClockwiseCommandsAddress);
+            var buttonCommandsAddress = eeprom[lookupAddress] + eeprom[lookupAddress + 1] * 256;
+            Debug.WriteLine("Encoder " + encoderControl.EncoderIndex + " button commands at address " + buttonCommandsAddress);
+            ReadCommandsArray(encoderControl.Button, eeprom, buttonCommandsAddress);
+            var clockwiseCommandsAddress = eeprom[lookupAddress + 2] + eeprom[lookupAddress + 3] * 256;
+            Debug.WriteLine("Encoder " + encoderControl.EncoderIndex + " clockwise commands at address " + clockwiseCommandsAddress);
+            ReadCommandsArray(encoderControl.ClockwiseStep, eeprom, clockwiseCommandsAddress);
+            var antiClockwiseCommandsAddress = eeprom[lookupAddress + 4] + eeprom[lookupAddress + 5] * 256;
+            Debug.WriteLine("Encoder " + encoderControl.EncoderIndex + " anti clockwise commands at address " + antiClockwiseCommandsAddress);
+            ReadCommandsArray(encoderControl.ClockwiseStep, eeprom, antiClockwiseCommandsAddress);
         }
 
         /// <summary>
@@ -263,39 +377,57 @@ namespace KeyboardEditor.Model
         /// <param name="button"></param>
         /// <param name="eeprom"></param>
         /// <param name="startAddress"></param>
-        private void ReadButtonCommands(Button button, byte[] eeprom, int startAddress)
+        private void ReadCommandsArray(Button button, byte[] eeprom, int startAddress)
         {
+            Debug.WriteLine("Commands array");
+
             var address = startAddress;
             var commandType = (CommandType)eeprom[address];
+            address++;
             do
             {
                 switch (commandType)
                 {
                     case CommandType.NoCommand:
+                        Debug.WriteLine(" No Command");
                         return;
 
                     case CommandType.Keyboard:
+                        Debug.WriteLine(" Keyboard Command");
                         var kc = new KeyboardCommand()
                         {
-                            CommandType = commandType,
-                            PressType = (PressType)(eeprom[address + 1]),
-                            KeyCode = (KeyboardKeycode)(eeprom[address + 2] * 256 + eeprom[address + 3]),
+                            PressType = (PressType)(eeprom[address]),
+                            KeyCode = (KeyboardKeycode)(eeprom[address + 1] + eeprom[address + 2] * 256),
                         };
+                        Debug.WriteLine("   Press Type " + kc.PressType);
+                        Debug.WriteLine("   Key Code " + kc.KeyCode);
                         button.Commands.Add(kc);
                         address += 3;
                         break;
 
                     case CommandType.Delay:
+                        Debug.WriteLine(" Delay Command");
                         var dc = new DelayCommand
                         {
-                            CommandType = commandType,
-                            DelayMs = (ushort)(eeprom[address + 1] * 256 + eeprom[address + 2])
+                            DelayMs = (ushort)(eeprom[address + 1] + eeprom[address + 2] * 256)
                         };
+                        Debug.WriteLine("   Delay (ms)" + dc.DelayMs);
                         button.Commands.Add(dc);
                         address += 2;
                         break;
 
                     case CommandType.LedLightSingle:
+                        Debug.WriteLine(" LED Single");
+                        var lc = new LedCommand
+                        {
+                            LedIndex = eeprom[address]
+                        };
+                        for (int i = 0; i < 3; i++)
+                        {
+                            lc.LedColour[i] = eeprom[address + i + 1];
+                        }
+                        button.Commands.Add(lc);
+                        address += 4;
                         break;
 
                     case CommandType.LedClearAll:
@@ -308,13 +440,19 @@ namespace KeyboardEditor.Model
                         break;
                 }
 
-                //'null' terminated list of commands
+                // if the next type is null, we have finished
                 commandType = (CommandType)eeprom[address];
+                address++;
             } while (commandType != CommandType.NoCommand);
         }
 
         private byte[] EncodeEeprom()
         {
+            if (buttons == null || encoders == null)
+            {
+                return new byte[0];
+            }
+
             var eeprom = new byte[2048];//keyboardSettings.EEPROMLength];
             eeprom[0] = EEPROM_INITIALISED & 0xFF;
             eeprom[1] = (EEPROM_INITIALISED & 0xFF00) >> 8;
@@ -417,6 +555,12 @@ namespace KeyboardEditor.Model
                         break;
 
                     case CommandType.LedLightSingle:
+                        eeprom[address] = ((LedCommand)command).LedIndex;
+                        for (int i = 0; i < 3; i++)
+                        {
+                            eeprom[address + i + 1] = ((LedCommand)command).LedColour[i];
+                        }
+                        address += 4;
                         break;
 
                     case CommandType.LedClearAll:

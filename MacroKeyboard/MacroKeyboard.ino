@@ -4,6 +4,7 @@
 #include <FastCRC.h>
 #include <Encoder.h>
 #include <EEPROM.h>
+#include <AceButton.h>
 
 #define TEENSY_BUILD
 
@@ -14,7 +15,6 @@
 #include "HID-Project.h"
 #endif // asds
 
-#include <AceButton.h>
 #include "version.h"
 
 using namespace ace_button;
@@ -280,6 +280,12 @@ uint16_t GetCommandAndRunIt(uint16_t address)
 		delay(delayms);
 		break;
 	case LedLightSingle:
+		ledArray[EEPROM.read(address + 1)] = CRGB(
+			EEPROM.read(address + 2),
+			EEPROM.read(address + 3),
+			EEPROM.read(address + 4));
+		FastLED.show();
+		nextAddress = address + 5;
 		break;
 	case LedClearAll:
 		break;
@@ -387,7 +393,6 @@ void ProcessIncomingCommands()
 			SendInt16(crcReply);
 			delay(2000);
 			SCB_AIRCR = 0x05FA0004; // software reset
-			//_restart_Teensyduino_();
 		}
 	}
 }
@@ -505,6 +510,55 @@ void clearLeds()
 	}
 }
 
+void setLed(byte iLed)
+{
+	ledArray[iLed] = CHSV(2, 255, 255);
+	FastLED.show();
+}
+
+void fadeLeds()
+{
+	fadeToBlackBy(ledArray, NumLeds, 10);
+	FastLED.show();
+}
+
+//do something with the leds
+void doLedScreensaver()
+{
+	//addGlitter(100);
+	rainbow();
+	//sinelon(50, 100);
+	FastLED.show();
+}
+
+void addGlitter(uint8_t intensity)
+{
+	fadeToBlackBy(ledArray, NumLeds, 50);
+	CRGB color = CRGB::White;
+	color.nscale8_video(intensity);
+	ledArray[random16(NumLeds)] = color;
+}
+
+void sinelon(uint8_t hue, uint8_t intensity)
+{
+	// a colored dot sweeping back and forth, with fading trails
+	fadeToBlackBy(ledArray, NumLeds, 50);
+	int pos = beatsin16(13, 0, NumLeds - 1);
+	ledArray[pos] = CHSV(hue, 255, intensity);
+}
+uint8_t rainbowInitialHue = 0;
+void rainbow()
+{
+	// FastLED's built-in rainbow generator
+	fill_rainbow(ledArray, NumLeds, rainbowInitialHue, 25);
+	fadeToBlackBy(ledArray, NumLeds, 200);
+	rainbowInitialHue++;
+	if (rainbowInitialHue > 255)
+	{
+		rainbowInitialHue = 0;
+	}
+}
+
 // ===========================================
 // main arduino functions
 // ===========================================
@@ -536,6 +590,7 @@ void setup()
 
 void loop()
 {
+	EVERY_N_MILLISECONDS(50) { doLedScreensaver(); }
 	CheckButtons();
 	ProcessIncomingCommands();
 }

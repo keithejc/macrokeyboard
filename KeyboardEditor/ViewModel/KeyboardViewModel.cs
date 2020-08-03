@@ -16,6 +16,8 @@ namespace KeyboardEditor.ViewModel
             Status = keyboard.ReadKeyboard();
         }
 
+        public int SpaceLeft { get { return keyboard.EepromSpaceLeft; } }
+
         public KeyboardSettings KeyboardSettings
         {
             get
@@ -45,7 +47,8 @@ namespace KeyboardEditor.ViewModel
         private string status;
         public string Status { get { return status; } set { status = value; OnPropertyChanged("Status"); } }
 
-        private System.Windows.Input.ICommand _SubmitCommand;
+        private System.Windows.Input.ICommand writeKeyboardCommand;
+        private System.Windows.Input.ICommand openKeyboardSettingsCommand;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -54,22 +57,44 @@ namespace KeyboardEditor.ViewModel
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public System.Windows.Input.ICommand SubmitCommand
+        public System.Windows.Input.ICommand WriteKeyboardCommand
         {
             get
             {
-                if (_SubmitCommand == null)
+                if (writeKeyboardCommand == null)
                 {
-                    _SubmitCommand = new RelayCommand(param => this.Submit(),
+                    writeKeyboardCommand = new RelayCommand(param => this.WriteKeyboard(),
                         null);
                 }
-                return _SubmitCommand;
+                return writeKeyboardCommand;
             }
         }
 
-        private void Submit()
+        private void WriteKeyboard()
         {
             Status = keyboard.WriteKeyboard();
+        }
+
+        public System.Windows.Input.ICommand OpenKeyboardSettingsCommand
+        {
+            get
+            {
+                if (openKeyboardSettingsCommand == null)
+                {
+                    openKeyboardSettingsCommand = new RelayCommand(param => this.OpenKeyboardSettings(),
+                        null);
+                }
+                return openKeyboardSettingsCommand;
+            }
+        }
+
+        private void OpenKeyboardSettings()
+        {
+            var keyboardSettingsWindow = new View.KeyboardSettings
+            {
+                DataContext = this
+            };
+            keyboardSettingsWindow.Show();
         }
 
         public class RelayCommand : System.Windows.Input.ICommand

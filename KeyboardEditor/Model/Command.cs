@@ -34,12 +34,16 @@ namespace KeyboardEditor.Model
         public PressType PressType;
         public KeyboardKeycode KeyCode;
 
+        public KeyboardCommand()
+        {
+            CommandType = CommandType.Keyboard;
+        }
+
         public string Name => this.ToString();
 
         public override string ToString()
         {
             var cmdString = Enum.GetName(typeof(KeyboardKeycode), KeyCode) + " " + Enum.GetName(typeof(PressType), PressType);
-            Debug.WriteLine("Command " + cmdString);
             return cmdString;
         }
     }
@@ -48,12 +52,35 @@ namespace KeyboardEditor.Model
     {
         public ushort DelayMs;
 
+        public DelayCommand()
+        {
+            CommandType = CommandType.Delay;
+        }
+
         public string Name => this.ToString();
 
         public override string ToString()
         {
             var cmdString = "Delay " + DelayMs / 1000 + "s";
-            Debug.WriteLine("Command " + cmdString);
+            return cmdString;
+        }
+    }
+
+    public class LedCommand : Command
+    {
+        public byte LedIndex;
+        public byte[] LedColour = new byte[3];
+
+        public LedCommand()
+        {
+            CommandType = CommandType.LedLightSingle;
+        }
+
+        public string Name => this.ToString();
+
+        public override string ToString()
+        {
+            var cmdString = "LED " + (LedIndex + 1) + " [" + LedColour[0] + " " + LedColour[1] + " " + LedColour[2] + "]";
             return cmdString;
         }
     }

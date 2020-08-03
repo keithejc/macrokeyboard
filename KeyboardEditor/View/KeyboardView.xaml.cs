@@ -25,14 +25,5 @@ namespace KeyboardEditor
         {
             InitializeComponent();
         }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            var keyboardSettingsWindow = new View.KeyboardSettings();
-            var vm = new KeyboardViewModel();
-            keyboardSettingsWindow.DataContext = vm;
-
-            keyboardSettingsWindow.Show();
-        }
     }
 }
